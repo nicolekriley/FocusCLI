@@ -30,10 +30,12 @@ class TimerResult:
 # update the display each tick and an optional tick interval that defaults to 1 second. 
 # It returns the total seconds elapsed and whether or not the timer was completed or interrupted. 
 # in order to avoid crashing, we catch KeyboardInterrupt and return "interrupted" instead of raising the exception.
+# tick interval can be set to 0 for testing purposes to avoid actual sleeping.
+# expects tick interval must be positive. 
 def run_countdown(
     total_seconds: int,
     on_tick: typing.Callable[[int, int], None],
-    tick_interval: float = 1.0,
+    tick_interval: int = 1,
 ) -> typing.Tuple[int, str]:
     """
     Count down total_seconds, calling on_tick(elapsed, total) each tick.
@@ -44,9 +46,12 @@ def run_countdown(
     try:
         while elapsed < total_seconds:
             on_tick(elapsed, total_seconds)
-            time.sleep(tick_interval)
-            elapsed += tick_interval
+            if tick_interval > 0:
+                time.sleep(tick_interval)
+                elapsed += tick_interval
+            else: 
+                elapsed += 1  # For testing, just increment without sleeping
         on_tick(elapsed, total_seconds)
-        return int(elapsed), "completed"
+        return elapsed, "completed"
     except KeyboardInterrupt:
-        return int(elapsed), "interrupted"
+        return elapsed, "interrupted"

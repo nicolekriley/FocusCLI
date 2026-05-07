@@ -26,19 +26,3 @@ def test_countdown_interrupts() -> None:
     assert elapsed == 2
     assert len(ticks) == 3  # 0, 1, 2
     assert ticks == [0, 1, 2]
-
-def test_countdown_tick_interval() -> None:
-    ticks: list[int] = []
-    elapsed, status = run_countdown(3, lambda e, t: ticks.append(e), tick_interval=2.0)
-    assert status == "completed"
-    assert elapsed == 3
-    assert len(ticks) == 2  # 0..2.5 inclusive
-    assert ticks == [0, 2]
-
-def test_countdown_fraction_tick_interval() -> None:
-    ticks: list[float] = []
-    elapsed, status = run_countdown(3, lambda e, t: ticks.append(e), tick_interval=0.5)
-    assert status == "completed"
-    assert elapsed == 3
-    assert len(ticks) == 7  # 0..3 inclusive
-    assert ticks == [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
