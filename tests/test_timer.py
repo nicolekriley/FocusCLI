@@ -1,4 +1,8 @@
-# tests the countdown timer logic for timer.py 
+"""
+test_timer.py 
+Tests for countdown timer logic in timer.py
+"""
+
 from focus.timer import run_countdown
 
 def test_countdown_completes() -> None:
