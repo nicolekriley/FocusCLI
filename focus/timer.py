@@ -2,7 +2,9 @@
 import time 
 import datetime 
 import typing 
-import dataclass 
+
+#need dataclass 
+from dataclasses import dataclass   
 
 
 # way to store data after a timer has ended
@@ -11,7 +13,7 @@ class TimerResult:
     planned_duration: int #planned duration of timer in seconds 
     actual_duration: int #actual duration of timer in seconds
     type: str #work vs break timer; "work" or "break"
-    start_time: datetime.dateime #time timer started 
+    start_time: datetime.datetime #time timer started 
     end_time: datetime.datetime # time timer ends 
     status: str #status of timer: "completed", "interrupted"
     task: str #describe what you are working on during the timer 
@@ -43,8 +45,8 @@ def run_countdown(
         while elapsed < total_seconds:
             on_tick(elapsed, total_seconds)
             time.sleep(tick_interval)
-            elapsed += 1
+            elapsed += tick_interval
         on_tick(elapsed, total_seconds)
-        return elapsed, "completed"
+        return int(elapsed), "completed"
     except KeyboardInterrupt:
-        return elapsed, "interrupted"
+        return int(elapsed), "interrupted"
