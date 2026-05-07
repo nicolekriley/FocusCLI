@@ -16,7 +16,7 @@ def test_countdown_calls_on_tick() -> None:
 def test_countdown_interrupts() -> None:
     ticks: list[int] = []
     # Simulate KeyboardInterrupt by raising it in the on_tick callback
-    def on_tick(e: int, t: int) -> None:
+    def on_tick(e: float, t: float) -> None:
         ticks.append(e)
         if e == 2:
             raise KeyboardInterrupt()

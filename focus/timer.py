@@ -33,10 +33,10 @@ class TimerResult:
 # tick interval can be set to 0 for testing purposes to avoid actual sleeping.
 # expects tick interval must be positive. 
 def run_countdown(
-    total_seconds: int,
-    on_tick: typing.Callable[[int, int], None],
-    tick_interval: int = 1,
-) -> typing.Tuple[int, str]:
+    total_seconds: float,
+    on_tick: typing.Callable[[float, float], None],
+    tick_interval: float = 1.0,
+) -> typing.Tuple[float, str]:
     """
     Count down total_seconds, calling on_tick(elapsed, total) each tick.
     Returns (seconds_elapsed, status) where status is 'completed' or 'interrupted'.
