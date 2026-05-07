@@ -4,8 +4,9 @@ Core countdown logic. Separated from display so it's easy to unit-test.
 """
 
 from __future__ import annotations
+
 import time 
-import datetime 
+from datetime import datetime 
 from typing import Tuple, Callable
 from dataclasses import dataclass   
 
@@ -34,7 +35,7 @@ def run_countdown(
     total_seconds: float,
     on_tick: Callable[[float, float], None],
     tick_interval: float = 1.0,
-) -> Tuple[float, str]:
+) -> tuple[float, str]:
     """
     Count down total_seconds, calling on_tick(elapsed, total) each tick.
     Returns (seconds_elapsed, status) where status is 'completed' or 'interrupted'.
@@ -46,9 +47,7 @@ def run_countdown(
             on_tick(elapsed, total_seconds)
             if tick_interval > 0:
                 time.sleep(tick_interval)
-                elapsed += tick_interval
-            else: 
-                elapsed += 1  # For testing, just increment without sleeping
+            elapsed += tick_interval if tick_interval > 0 else 1  # For testing, just increment without sleeping
         on_tick(elapsed, total_seconds)
         return elapsed, "completed"
     except KeyboardInterrupt:
