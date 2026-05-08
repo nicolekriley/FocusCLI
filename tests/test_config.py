@@ -2,7 +2,7 @@
 test functionality of config module
 '''
 
-from focus.config import FocusConfig
+from focus.config import FocusConfig, CONFIG_FILE_PATH
 from pathlib import Path
 
 def test_load_defaults():
@@ -12,8 +12,7 @@ def test_load_defaults():
     assert cfg.cycles == 4
     assert cfg.long_break_minutes == 15
     assert cfg.long_focus_minutes == 45
-    assert str(cfg.data_path) == Path.home() / "~/.focus_data.json"
-    assert str(cfg.config_file_path) == Path.home() / "~/.focus.toml"
+    assert str(cfg.data_path) == str(Path.home() / "~/.focus_data.json")
 
 def test_show():
     cfg = FocusConfig()
@@ -36,9 +35,9 @@ def test_load_from_file(tmp_path):
     """
     config_file = tmp_path / "focus.toml"
     config_file.write_text(config_content)
-    
+
     # Override the CONFIG_FILE_PATH to point to our temp file
-    FocusConfig.config_file_path = config_file
+    CONFIG_FILE_PATH = config_file
     
     cfg = FocusConfig.load()
     assert cfg.focus_minutes == 30
@@ -47,4 +46,3 @@ def test_load_from_file(tmp_path):
     assert cfg.long_break_minutes == 20
     assert cfg.long_focus_minutes == 60
     assert str(cfg.data_path) == "/tmp/focus_data.json"
-    assert str(cfg.config_file_path) == str(config_file)

@@ -32,7 +32,6 @@ class FocusConfig:
     long_break_minutes: int = DEFAULT_LONG_BREAK_MINUTES
     long_focus_minutes: int = DEFAULT_LONG_FOCUS_MINUTES
     data_path: Path = field(default_factory=lambda: DATA_FILE_PATH)
-    config_file_path: Path = field(default_factory=lambda: CONFIG_FILE_PATH)
 
     @classmethod
     def load(cls) -> FocusConfig:
