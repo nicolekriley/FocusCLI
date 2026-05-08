@@ -36,8 +36,7 @@ def override_config_path(tmp_path):
     yield config_file
     config_module.CONFIG_FILE_PATH = original_path
 
-@pytest.mark.usefixtures("override_config_path")
-def test_load_from_file(tmp_path):
+def test_load_from_file(override_config_path):
     config_content = """
     [focus]
     focus_minutes = 30
@@ -47,8 +46,7 @@ def test_load_from_file(tmp_path):
     long_focus_minutes = 60
     data_path = "/tmp/focus_data.json"
     """
-    config_file = tmp_path / "focus.toml"
-    config_file.write_text(config_content)
+    override_config_path.write_text(config_content)
     
     cfg = FocusConfig.load()
     assert cfg.focus_minutes == 30

@@ -45,7 +45,7 @@ class FocusConfig:
             cycles=cfg.get("cycles", DEFAULT_CYCLES),
             long_break_minutes=cfg.get("long_break_minutes", DEFAULT_LONG_BREAK_MINUTES),
             long_focus_minutes=cfg.get("long_focus_minutes", DEFAULT_LONG_FOCUS_MINUTES),
-            data_path=Path(cfg.get("data_path", str(Path.home() / "~/.focus_data.json"))),
+            data_path=Path(cfg.get("data_path", DATA_FILE_PATH)),
         )
 
         
