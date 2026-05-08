@@ -2,7 +2,8 @@
 test functionality of config module
 '''
 
-from focus.config import FocusConfig, CONFIG_FILE_PATH
+from focus.config import FocusConfig
+import focus.config as config_module
 from pathlib import Path
 
 def test_load_defaults():
@@ -37,7 +38,7 @@ def test_load_from_file(tmp_path):
     config_file.write_text(config_content)
 
     # Override the CONFIG_FILE_PATH to point to our temp file
-    CONFIG_FILE_PATH = config_file
+    config_module.CONFIG_FILE_PATH = config_file
     
     cfg = FocusConfig.load()
     assert cfg.focus_minutes == 30
