@@ -1,5 +1,5 @@
 '''
-test functionality of config module
+test functionality of FocusConfig class in config.py
 '''
 
 from focus.config import FocusConfig
