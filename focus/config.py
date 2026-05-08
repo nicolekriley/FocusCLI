@@ -4,8 +4,6 @@ Contains configuration information for the focus package CLI
 '''
 from __future__ import annotations
 
-import sys
-
 from dataclasses import dataclass, field 
 from pathlib import Path
 
@@ -21,8 +19,8 @@ DEFAULT_CYCLES = 4
 DEFAULT_LONG_BREAK_MINUTES = 15
 DEFAULT_LONG_FOCUS_MINUTES = 45 
 
-CONFIG_FILE_PATH = Path.home() / "~/.focus.toml"
-DATA_FILE_PATH = Path.home() / "~/.focus_data.json"
+CONFIG_FILE_PATH = Path.home() / ".focus.toml"
+DATA_FILE_PATH = Path.home() / ".focus_data.json"
 
 @dataclass 
 class FocusConfig:
@@ -52,7 +50,7 @@ class FocusConfig:
 
         
     
-    def show(self):
+    def show(self)  -> dict[str, object]:
         return {
             "Focus duration": f"{self.focus_minutes} min",
             "Break duration": f"{self.break_minutes} min",

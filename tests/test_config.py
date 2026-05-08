@@ -5,6 +5,7 @@ test functionality of FocusConfig class in config.py
 from focus.config import FocusConfig
 import focus.config as config_module
 from pathlib import Path
+import pytest
 
 def test_load_defaults():
     cfg = FocusConfig.load()
@@ -13,7 +14,7 @@ def test_load_defaults():
     assert cfg.cycles == 4
     assert cfg.long_break_minutes == 15
     assert cfg.long_focus_minutes == 45
-    assert str(cfg.data_path) == str(Path.home() / "~/.focus_data.json")
+    assert str(cfg.data_path) == str(Path.home() / ".focus_data.json")
 
 def test_show():
     cfg = FocusConfig()
@@ -24,6 +25,18 @@ def test_show():
     assert display["Long break duration"] == "15 min"
     assert display["Long focus duration"] == "45 min"
 
+@pytest.fixture(autouse=False)
+def override_config_path(tmp_path):
+    '''
+    Fixture to override CONFIG_FILE_PATH for testing load from file without affecting real config.
+    '''
+    original_path = config_module.CONFIG_FILE_PATH
+    config_file = tmp_path / "focus.toml"
+    config_module.CONFIG_FILE_PATH = config_file
+    yield config_file
+    config_module.CONFIG_FILE_PATH = original_path
+
+@pytest.mark.usefixtures("override_config_path")
 def test_load_from_file(tmp_path):
     config_content = """
     [focus]
@@ -36,9 +49,6 @@ def test_load_from_file(tmp_path):
     """
     config_file = tmp_path / "focus.toml"
     config_file.write_text(config_content)
-
-    # Override the CONFIG_FILE_PATH to point to our temp file
-    config_module.CONFIG_FILE_PATH = config_file
     
     cfg = FocusConfig.load()
     assert cfg.focus_minutes == 30
