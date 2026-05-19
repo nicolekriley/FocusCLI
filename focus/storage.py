@@ -44,7 +44,7 @@ def get_sessions_last_n_days(data_path: Path, days: int = 7) -> List[SessionReco
     return [
         r for r in records
         if r.get("session_type") == "focus"
-        and r.get("started_at", "") >= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days-1)).isoformat()
+        and r.get("started_at", "") >= (datetime.now().date() - timedelta(days=days-1)).isoformat()
     ]
 
 def _get_completed_focus_dates(data_path: Path) -> set[date]:

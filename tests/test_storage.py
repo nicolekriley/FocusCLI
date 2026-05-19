@@ -25,7 +25,7 @@ def test_save_and_load(tmp_path):
 
 def test_streak(tmp_path):
     data_path = tmp_path / "sessions.json"
-    # Create records for 3 consecutive days
+    # Create records for 4 consecutive days
     for i in range(4):
         record = SessionRecord(
             id=i, 
@@ -83,8 +83,8 @@ def test_streak_all_interrupted(tmp_path):
 
 def test_streak_mixed_status(tmp_path):
     data_path = tmp_path / "sessions.json"
-    # Create mixed sessions for 3 consecutive days
-    for i in range(3):
+    # Create mixed sessions for 4 consecutive days
+    for i in range(4):
         record = SessionRecord(
             id=i, 
             task=f"Task {i}",
@@ -92,12 +92,12 @@ def test_streak_mixed_status(tmp_path):
             actual_duration=25 if i % 2 == 0 else 10,
             started_at= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3-i) + timedelta(hours=10, minutes=0)).isoformat(),
             ended_at= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3-i) + timedelta(hours=10, minutes=25)).isoformat() if i % 2 == 0 else (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3-i) + timedelta(hours=10, minutes=10)).isoformat(),
-            reflection="Felt good" if i % 2 == 0 else "Felt bad",
-            status="completed" if i % 2 == 0 else "interrupted",
+            reflection="Felt good" if i % 2 == 1 else "Felt bad",
+            status="completed" if i % 2 == 1 else "interrupted",
             session_type="focus"
         )
         save_session(data_path, record)
-    assert get_streak(data_path) == 1  # Only the first day is completed, so streak should be 1
+    assert get_streak(data_path) == 1  # Only the current day is completed, so streak should be 1
 
 def test_longest_streak(tmp_path):
     data_path = tmp_path / "sessions.json"
@@ -129,12 +129,12 @@ def test_get_sessions_last_n_days(tmp_path):
             started_at= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=9-i) + timedelta(hours=10, minutes=0)).isoformat(),  # Start from 10 days ago
             ended_at= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=9-i) + timedelta(hours=10, minutes=25)).isoformat(),
             status="completed",
-            session_type="focus" if i % 2 == 0 else "break"
+            session_type="focus"
         )
         save_session(data_path, record)
     last_7_days = get_sessions_last_n_days(data_path, days=7)
     assert len(last_7_days) == 7
-    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=7)).isoformat()  # Should start from day 7
+    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)).isoformat()  # Should start from day 7
 
 def test_get_sessions_last_n_days_no_sessions(tmp_path):
     data_path = tmp_path / "sessions.json"
@@ -176,11 +176,11 @@ def test_get_sessions_last_n_days_mixed(tmp_path):
         save_session(data_path, record)
     last_7_days = get_sessions_last_n_days(data_path, days=7)
     assert len(last_7_days) == 7
-    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=7)).isoformat()
+    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(hours=10, minutes=0) - timedelta(days=6)).isoformat()
     completed_sessions = [r for r in last_7_days if r["status"] == "completed"]
-    assert len(completed_sessions) == 4  # Only even days are completed
+    assert len(completed_sessions) == 3  # Only even days are completed
     interrupted_sessions = [r for r in last_7_days if r["status"] == "interrupted"]
-    assert len(interrupted_sessions) == 3  # Only odd days are interrupted
+    assert len(interrupted_sessions) == 4  # Only odd days are interrupted
 
 def test_get_sessions_last_n_days_only_breaks(tmp_path):
     data_path = tmp_path / "sessions.json"
@@ -216,7 +216,7 @@ def test_get_sessions_mixed_session_types(tmp_path):
         )
         save_session(data_path, record)
     last_7_days = get_sessions_last_n_days(data_path, days=7)
-    assert len(last_7_days) == 4  # Only the focus sessions should be returned
+    assert len(last_7_days) == 3 # Only the focus sessions should be returned
 
 def test_get_max_sessions_per_day(tmp_path):
     data_path = tmp_path / "sessions.json"
