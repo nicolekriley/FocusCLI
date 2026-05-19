@@ -41,11 +41,10 @@ def save_session(data_path: Path, record: SessionRecord) -> None:
 
 def get_sessions_last_n_days(data_path: Path, days: int = 7) -> List[SessionRecord]:
     records = _load_all(data_path)
-    cutoff = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days - 1)
     return [
         r for r in records
         if r.get("session_type") == "focus"
-        and r.get("started_at", "") >= cutoff.isoformat()
+        and r.get("started_at", "") >= (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days-1)).isoformat()
     ]
 
 def _get_completed_focus_dates(data_path: Path) -> set[date]:
@@ -64,8 +63,7 @@ def get_streak(data_path: Path) -> int:
     """Return the number of consecutive days with at least one completed focus session from current day."""
     completed_dates:set[date] = _get_completed_focus_dates(data_path) 
     streak = 0
-    today = datetime.now().date()
-    while (today - timedelta(days=streak)) in completed_dates:
+    while (datetime.now().date() - timedelta(days=streak)) in completed_dates:
         streak += 1
     return streak
         
