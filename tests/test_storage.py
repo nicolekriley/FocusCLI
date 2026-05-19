@@ -11,7 +11,7 @@ def _today_midnight() -> datetime:
 def test_save_and_load(tmp_path):
     data_path = tmp_path / "sessions.json"
     record = SessionRecord(
-        id=str(1), 
+        id="1", 
         task="Test Task",
         planned_duration=25,
         actual_duration=20,
@@ -138,7 +138,7 @@ def test_get_sessions_last_n_days(tmp_path):
         save_session(data_path, record)
     last_7_days = get_sessions_last_n_days(data_path, days=7)
     assert len(last_7_days) == 7
-    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=10, minute=0, second=0, microsecond=0) - timedelta(days=6)).isoformat()  # Should start from day 7
+    assert last_7_days[0]["started_at"] == (_today_midnight() + timedelta(hours=10, minutes=0) - timedelta(days=6)).isoformat()  # Should start from day 7
 
 def test_get_sessions_last_n_days_no_sessions(tmp_path):
     data_path = tmp_path / "sessions.json"
@@ -243,8 +243,3 @@ def test_get_max_sessions_per_day(tmp_path):
 def test_get_max_sessions_per_day_no_sessions(tmp_path):
     data_path = tmp_path / "sessions.json"
     assert get_max_sessions_per_day(data_path) == 0  # No sessions, so should return 0
-
-
-
-
-

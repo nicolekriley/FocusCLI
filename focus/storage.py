@@ -39,11 +39,16 @@ def save_session(data_path: Path, record: SessionRecord) -> None:
 
 def get_sessions_last_n_days(data_path: Path, days: int = 7) -> list[SessionRecord]:
     records = _load_all(data_path)
-    return [
-        r for r in records
-        if r.get("session_type") == "focus"
-        and datetime.fromisoformat(r["started_at"]).date() >= datetime.now().date() - timedelta(days=days-1)
-    ]
+    completed_sessions: list[SessionRecord] =[]
+    for r in records: 
+        if r.get("session_type") == "focus":
+            try:
+                d = datetime.fromisoformat(r["started_at"]).date()
+                if d >= datetime.now().date() - timedelta(days=days-1):
+                    completed_sessions.append(r)
+            except ValueError:
+                continue
+    return completed_sessions
 
 def _get_completed_focus_dates(data_path: Path) -> set[date]:
     records = _load_all(data_path)
@@ -59,7 +64,7 @@ def _get_completed_focus_dates(data_path: Path) -> set[date]:
 
 def get_streak(data_path: Path) -> int:
     """Return the number of consecutive days with at least one completed focus session from current day."""
-    completed_dates:set[date] = _get_completed_focus_dates(data_path) 
+    completed_dates: set[date] = _get_completed_focus_dates(data_path) 
     streak = 0
     while (datetime.now().date() - timedelta(days=streak)) in completed_dates:
         streak += 1
@@ -67,7 +72,7 @@ def get_streak(data_path: Path) -> int:
         
 def get_longest_streak(data_path: Path) -> int:
     """Return the longest streak of consecutive days with at least one completed focus session."""
-    completed_dates:set[date] = _get_completed_focus_dates(data_path)
+    completed_dates: set[date] = _get_completed_focus_dates(data_path)
     if not completed_dates:
         return 0
     sorted_dates = sorted(completed_dates)
@@ -94,5 +99,3 @@ def get_max_sessions_per_day(data_path: Path) -> int:
             except ValueError:
                 continue
     return max(sessions_per_day.values(), default=0)
-
-
