@@ -6,14 +6,12 @@ Saves timer results to a JSON file.
 from __future__ import annotations
 
 import json 
-from typing import List
-from focus.timer import TimerResult
 from pathlib import Path
 from datetime import datetime, timedelta, date
 from typing import TypedDict, Required
 
 class SessionRecord(TypedDict, total=False):
-    id: int # unique identifier for the session, e.g. a UUID
+    id: str # unique identifier for the session, e.g. a UUID
     task: str # description of the task worked on during the session
     planned_duration: Required[int] # planned duration of the session in seconds
     actual_duration: Required[int] # actual duration of the session in seconds
@@ -23,13 +21,13 @@ class SessionRecord(TypedDict, total=False):
     session_type: Required[str] # "focus" or "break"
     reflection: str # optional reflection on how the session went, e.g. "Felt good", "Got distracted by phone"
 
-def _load_all(data_path: Path) -> List[SessionRecord]:
+def _load_all(data_path: Path) -> list[SessionRecord]:
     if not data_path.exists():
         return []
     with open(data_path) as f:
         return json.load(f)
     
-def _save_all(data_path: Path, records: List[SessionRecord]) -> None:
+def _save_all(data_path: Path, records: list[SessionRecord]) -> None:
     data_path.parent.mkdir(parents=True, exist_ok=True)
     with open(data_path, "w") as f:
         json.dump(records, f, indent=2)
@@ -39,12 +37,12 @@ def save_session(data_path: Path, record: SessionRecord) -> None:
     records.append(record)
     _save_all(data_path, records)
 
-def get_sessions_last_n_days(data_path: Path, days: int = 7) -> List[SessionRecord]:
+def get_sessions_last_n_days(data_path: Path, days: int = 7) -> list[SessionRecord]:
     records = _load_all(data_path)
     return [
         r for r in records
         if r.get("session_type") == "focus"
-        and r.get("started_at", "") >= (datetime.now().date() - timedelta(days=days-1)).isoformat()
+        and datetime.fromisoformat(r["started_at"]).date() >= datetime.now().date() - timedelta(days=days-1)
     ]
 
 def _get_completed_focus_dates(data_path: Path) -> set[date]:
