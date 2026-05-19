@@ -134,7 +134,7 @@ def test_get_sessions_last_n_days(tmp_path):
         save_session(data_path, record)
     last_7_days = get_sessions_last_n_days(data_path, days=7)
     assert len(last_7_days) == 7
-    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=6)).isoformat()  # Should start from day 7
+    assert last_7_days[0]["started_at"] == (datetime.now().replace(hour=10, minute=0, second=0, microsecond=0) - timedelta(days=6)).isoformat()  # Should start from day 7
 
 def test_get_sessions_last_n_days_no_sessions(tmp_path):
     data_path = tmp_path / "sessions.json"
