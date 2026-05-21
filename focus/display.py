@@ -11,44 +11,44 @@ from rich.console import Console
 from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.table import Table
 from storage import SessionRecord
-from rich.prompt import Prompt 
+from rich.prompt import Prompt
 from rich.panel import Panel
 from rich.align import Align
 
 def show_start_banner(console: Console, minutes: int, timer_type: str, task: str) -> None:
-    emoji = Emoji("pushpin") if timer_type == "focus" else  Emoji("coffee")
+    emoji = Emoji("pushpin") if timer_type == "focus" else Emoji("coffee")
     focus_color = "bold green" if timer_type == "focus" else "bold cyan"
-    panelText = f"Starting [{focus_color}]{timer_type}[/] session for {minutes} minutes for task: [italic]{task}[/italic]"
-    panelTextAligned = Align.center(panelText)
-    console.print(Panel(title=f"{emoji} Starting Session Timer {emoji}", renderable=panelTextAligned, border_style=focus_color.replace("bold ", "")))
+    panel_text = f"Starting [{focus_color}]{timer_type}[/] session for {minutes} minutes for task: [italic]{task}[/italic]"
+    panel_text_aligned = Align.center(panel_text)
+    console.print(Panel(title=f"{emoji} Starting Session Timer {emoji}", renderable=panel_text_aligned, border_style=focus_color.replace("bold ", "")))
 
 def show_complete_banner(console: Console, timer_type: str, minutes: int) -> None:
-    panelText = """
+    panel_text = """
         :brain: [bold]Great work![/bold]
         :stopwatch:  {mins} minutes of focus
         :star:  Keep the momentum going
     """.format(mins=minutes)
-    alignedText = Align.center(panelText)
-    console.print(Panel(title=":sparkles: [bold yellow]Session Complete[/bold yellow] :sparkles:", renderable=alignedText, border_style="yellow"))
+    aligned_text = Align.center(panel_text)
+    console.print(Panel(title=":sparkles: [bold yellow]Session Complete[/bold yellow] :sparkles:", renderable=aligned_text, border_style="yellow"))
 
 def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int) -> None:
     emoji = Emoji("x")
-    panelText = f"[bold red]{timer_type} session interrupted after {actual_minutes} minutes![/bold red] \n[italic]That's okay — it still counts.[/italic] 💛"
-    panelTextAligned = Align.center(panelText)
-    console.print(Panel(title=f"{emoji} Session Interrupted {emoji}", renderable=panelTextAligned, border_style="dim"))
+    panel_text= f"[bold red]{timer_type} session interrupted after {actual_minutes} minutes![/bold red] \n[italic]That's okay — it still counts.[/italic] 💛"
+    panel_text_aligned = Align.center(panel_text)
+    console.print(Panel(title=f"{emoji} Session Interrupted {emoji}", renderable=panel_text_aligned, border_style="dim"))
 
 def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
-    # show stats of current streak, session history over past 7 days, sessions today, total focus time
+    # show stats of current streak, total sessions, sessions today, total focus time
     emoji = Emoji("chart_with_upwards_trend")
-    panelText = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nSessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
-    alignedText = Align.center(panelText)
-    console.print(Panel(renderable=alignedText, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nSessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    aligned_text = Align.center(panel_text)
+    console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 
 def show_best_stats(console: Console, best_streak: int, best_focus_count: int, most_focus_min:int) -> None:
     emoji = Emoji("trophy")
-    panelText = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
-    alignedText = Align.center(panelText)
-    console.print(Panel(renderable=alignedText, title=f"{emoji} Personal Bests {emoji}", border_style="magenta"))
+    panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
+    aligned_text = Align.center(panel_text)
+    console.print(Panel(renderable=aligned_text, title=f"{emoji} Personal Bests {emoji}", border_style="magenta"))
 
 def show_history_table(console: Console, length: int, sessions: list[SessionRecord]) -> None:
     if not sessions:
