@@ -24,16 +24,17 @@ def show_start_banner(console: Console, minutes: int, timer_type: str, task: str
 
 def show_complete_banner(console: Console, timer_type: str, minutes: int) -> None:
     panel_text = """
+        :party_popper: {timer_type} session complete!
         :brain: [bold]Great work![/bold]
         :stopwatch:  {mins} minutes of focus
-        :star:  Keep the momentum going
-    """.format(mins=minutes)
+        :star: Keep the momentum going
+    """.format(mins=minutes, timer_type=timer_type.capitalize())
     aligned_text = Align.center(panel_text)
-    console.print(Panel(title=":sparkles: [bold yellow]Session Complete[/bold yellow] :sparkles:", renderable=aligned_text, border_style="yellow"))
+    console.print(Panel(title=":sparkles: [bold yellow] Session Complete[/bold yellow] :sparkles:", renderable=aligned_text, border_style="yellow"))
 
 def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int) -> None:
     emoji = Emoji("x")
-    panel_text= f"[bold red]{timer_type} session interrupted after {actual_minutes} minutes![/bold red] \n[italic]That's okay — it still counts.[/italic] 💛"
+    panel_text= f"[bold red]{timer_type.capitalize()} session interrupted after {actual_minutes} minutes![/bold red] \n[italic]That's okay — it still counts.[/italic] 💛"
     panel_text_aligned = Align.center(panel_text)
     console.print(Panel(title=f"{emoji} Session Interrupted {emoji}", renderable=panel_text_aligned, border_style="dim"))
 
@@ -44,7 +45,7 @@ def show_stats(console: Console, current_streak: int, total_sessions: int, sessi
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 
-def show_best_stats(console: Console, best_streak: int, best_focus_count: int, most_focus_min:int) -> None:
+def show_best_stats(console: Console, best_streak: int, best_focus_count: int, most_focus_min: int) -> None:
     emoji = Emoji("trophy")
     panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
     aligned_text = Align.center(panel_text)
