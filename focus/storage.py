@@ -26,6 +26,9 @@ def _load_all(data_path: Path) -> list[SessionRecord]:
         return []
     with open(data_path) as f:
         return json.load(f)
+
+def get_all_sessions(data_path: Path) -> list[SessionRecord]:
+    return _load_all(data_path)
     
 def _save_all(data_path: Path, records: list[SessionRecord]) -> None:
     data_path.parent.mkdir(parents=True, exist_ok=True)
@@ -99,3 +102,19 @@ def get_max_sessions_per_day(data_path: Path) -> int:
             except ValueError:
                 continue
     return max(sessions_per_day.values(), default=0)
+
+
+def get_sessions_today(data_path: Path) -> int:
+    """Return the number of completed focus sessions today."""
+    records = _load_all(data_path)
+    today = datetime.now().date()
+    count = 0
+    for r in records:
+        if r.get("status") == "completed" and r.get("session_type") == "focus":
+            try:
+                d = datetime.fromisoformat(r["started_at"]).date()
+                if d == today:
+                    count += 1
+            except ValueError:
+                continue
+    return count
