@@ -29,11 +29,14 @@ from storage import (
     get_number_completed_focus_sessions_today, 
     get_all_sessions,
     get_number_completed_focus_sessions_today_before_last_long_break, 
+    get_total_focus_mins, 
+    get_most_focus_min
 )
 from rich.console import Console
 import click
 from pathlib import Path
 from config import FocusConfig
+
 
 @click.group()
 def focus():
@@ -41,27 +44,34 @@ def focus():
 
 
 @focus.command()
-@click.option("--duration", "-d", default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=int, default=25, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=int, default=5, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, help="Skip the break after this session")
 def start(duration: int, task: str, break_duration: int, no_break: bool):
     '''
-    Start a focus session with an optional break. Accepts duration in minutes, task description, and break duration. Saves session results and reflections to storage.
+    Start a focus session with an optional break. Accepts duration in minutes, task description, and break duration. 
+    Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today, prompts for a longer break.
+    Saves session results and reflections to storage.\n
+    Args: \n
+        --duration: Duration of focus session in minutes (overrides config)
+        --task: Description of the task you're working on (default: "General Focus")
+        --break-duration: Duration of break session in minutes (overrides config)
+        --no-break: Skip the break after this session
     '''
     console = Console()
     cfg = FocusConfig.load()
 
     config_focus_duration = cfg.focus_minutes
     config_break_duration = cfg.break_minutes
+    if duration != 0 or break_duration != 0: 
+        duration = duration or config_focus_duration
+        break_duration = break_duration or config_break_duration
     if get_number_completed_focus_sessions_today_before_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
         longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
         if longer_break: 
             duration = cfg.long_break_minutes
             break_duration = cfg.long_focus_minutes
-        else:
-            duration = duration or config_focus_duration
-            break_duration = break_duration or config_break_duration
     
     show_start_banner(console, duration, "focus", task)
     start_time = datetime.now()
@@ -69,6 +79,8 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     elapsed, status = run_countdown(total_seconds, lambda e, t: None)  # No-op on_tick for now
     end_time = datetime.now()
     
+    print(duration, elapsed, status)
+
     timer_result = TimerResult(
         planned_duration=total_seconds,
         actual_duration=elapsed,
@@ -100,7 +112,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     else:
         show_interrupt_banner(console, "focus", round(elapsed / 60))
     
-    continued = False 
+    prompted = False 
     if not no_break and status == "completed":
         show_start_banner(console, break_duration, "break", "Break Time!")
         break_start_time = datetime.now()
@@ -120,6 +132,8 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
 
         reflection = prompt_reflection(console)
 
+        print(break_timer_result.planned_duration)
+        print(break_timer_result.actual_duration)
         break_record = SessionRecord(
             id=str(break_start_time.timestamp()),
             task="Break",
@@ -139,10 +153,11 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
         else:
             show_interrupt_banner(console, "break", round(break_elapsed / 60))
 
-        continued = break_status == "completed" and continue_to_next_session(console)
+        continued = break_status == "completed" and continue_to_next_session()
+        prompted = True 
         if continued:
             start(duration=duration, task=task, break_duration=break_duration, no_break=no_break) 
-    if not continued and status == "completed" and continue_to_next_session():
+    if not prompted and status == "completed" and continue_to_next_session():
         start(duration=duration, task=task, break_duration=break_duration, no_break=no_break)
 
 
@@ -150,7 +165,10 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
 @click.option("--days", "-d", default=7, help="Number of days of history to show")
 def history(days):
     '''
-    Show a table of focus sessions from the last N days.
+    Show a table of focus sessions from the last N days. Prints no sessions found if there are none.
+    Table contains task, session type, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
+    Args: \n
+        --days: Number of days of history to show (default: 7)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
@@ -159,23 +177,29 @@ def history(days):
 
 
 @focus.command()
-def personal_best_stats():
+@click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
+def personal_best(include_interrupted):
     '''
-    Show personal best stats like longest streak, most sessions in a day, longest focus time.
+    Show personal best stats like longest streak, most sessions in a day, longest focus time. \n
+    Args: \n
+        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
     sessions = get_all_sessions(focus_session_data.data_path)
     best_streak = get_longest_streak(focus_session_data.data_path)
     best_focus_count = get_max_sessions_per_day(focus_session_data.data_path)
-    most_focus_min = max((s["actual_duration"] for s in sessions if s["status"] == "completed" and s["session_type"] == "focus"), default=0) // 60
+    most_focus_min = get_most_focus_min(focus_session_data.data_path, include_interrupted=include_interrupted)
     show_best_stats(console, best_streak, best_focus_count, most_focus_min)
 
 
 @focus.command()
-def stats():
+@click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
+def stats(include_interrupted):
     '''
-    Show current streak, total sessions, sessions today, and total focus time.
+    Show current streak, total sessions, sessions today, and total focus time. \n
+    Args: \n
+        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
@@ -183,9 +207,9 @@ def stats():
     current_streak = get_streak(focus_session_data.data_path)
     total_sessions = len(sessions)
     sessions_today = get_number_completed_focus_sessions_today(focus_session_data.data_path)
-    total_focus = sum(s["actual_duration"] for s in sessions if s["session_type"] == "focus")
+    total_focus_time = get_total_focus_mins(focus_session_data.data_path, include_interrupted=include_interrupted)
 
-    show_stats(console, current_streak, total_sessions, sessions_today, total_focus // 60)
+    show_stats(console, current_streak, total_sessions, sessions_today, total_focus_time)
 
 
 @focus.command()
@@ -200,3 +224,24 @@ def config():
         console.print(f"[cyan]{key}:[/cyan] {value}")
 
 
+@focus.command()
+def reset():
+    '''
+    Reset all session data. Prompts for confirmation before deleting data file.
+    '''
+    console = Console()
+    focus_session_data = FocusConfig.load()
+    if not focus_session_data.data_path.exists():
+        console.print("[dim]No session data found to reset.[/dim]")
+        return
+    
+    confirm = click.confirm("Are you sure you want to reset all session data? This cannot be undone.", default=False)
+    if confirm:
+        focus_session_data.data_path.unlink()
+        console.print("[green]All session data has been reset.[/green]")
+    else:
+        console.print("[yellow]Reset cancelled. Your session data is safe.[/yellow]")
+
+
+if __name__ == '__main__':
+    focus()

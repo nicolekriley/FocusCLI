@@ -142,3 +142,22 @@ def get_number_completed_focus_sessions_today_before_last_long_break(data_path: 
             except ValueError:
                 continue
     return count
+
+
+def get_total_focus_mins(data_path: Path, include_interrupted: bool = False) -> int:
+    """Return total focus time in minutes."""
+    records = _load_all(data_path)
+    for r in records: 
+        print(f"record: {r}")
+    if include_interrupted:
+        return round(sum(r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus") / 60 )
+    else:
+        return round(sum(r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus") / 60)
+
+def get_most_focus_min(data_path: Path, include_interrupted: bool = False) -> int:
+    """Return the longest focus session in minutes."""
+    records = _load_all(data_path)
+    if include_interrupted:
+        return round(max((r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus"), default=0)/60)
+    else: 
+        return round(max((r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus"), default=0)/60)
