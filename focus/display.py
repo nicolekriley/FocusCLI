@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.table import Table
 from storage import SessionRecord
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.align import Align
 
@@ -104,3 +104,15 @@ def make_progress_bar(console: Console) -> Progress:
         TimeRemainingColumn(),
         console=console,
     )
+
+
+def continue_to_next_session(console: Console) -> bool:
+    return Confirm.ask("\n:repeat: [bold]Ready for the next session?[/bold] :repeat:", default=True)
+
+
+def long_break_notification(console: Console, cycles: int, given_break_duration: int, recommended_break_duration: int) -> bool:
+    console.print(f"\n:coffee: [bold yellow]You've completed {cycles} focus sessions! Time for a longer break![/bold yellow] :coffee:")
+    if given_break_duration: 
+        console.print(f"[dim]You specified a break duration of {given_break_duration} minutes.[/dim]")
+    console.print(f"[dim]The recommended break duration is {recommended_break_duration} minutes.[/dim]")
+    return Confirm.ask(f"Would you like to take the recommended {recommended_break_duration}-minute break instead?", default=True)
