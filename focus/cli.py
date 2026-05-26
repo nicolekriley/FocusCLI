@@ -13,7 +13,9 @@ from display import (
     show_interrupt_banner, 
     show_stats, 
     show_best_stats, 
-    prompt_reflection
+    prompt_reflection, 
+    continue_to_next_session, 
+    long_break_notification
 )
 from timer import run_countdown, TimerResult
 from config import FocusConfig
@@ -24,11 +26,10 @@ from storage import (
     get_streak, 
     get_longest_streak, 
     get_max_sessions_per_day, 
-    get_sessions_today, 
+    get_number_completed_focus_sessions_today, 
     get_all_sessions,
-    get_sessions_today_before_last_long_break, 
-    continue_to_next_session, 
-    long_break_notification)
+    get_number_completed_focus_sessions_today_before_last_long_break, 
+)
 from rich.console import Console
 import click
 from pathlib import Path
@@ -53,8 +54,8 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
 
     config_focus_duration = cfg.focus_minutes
     config_break_duration = cfg.break_minutes
-    if get_sessions_today_before_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
-        longer_break = long_break_notification(console, cfg.long_break_minutes)
+    if get_number_completed_focus_sessions_today_before_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
+        longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
         if longer_break: 
             duration = cfg.long_break_minutes
             break_duration = cfg.long_focus_minutes
@@ -91,14 +92,15 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
         session_type=timer_result.type,
         reflection=reflection
     )
-    
+
     save_session(Path(cfg.data_path), record)
 
     if status == "completed":
         show_complete_banner(console, "focus", round(elapsed / 60))
     else:
         show_interrupt_banner(console, "focus", round(elapsed / 60))
-
+    
+    continued = False 
     if not no_break and status == "completed":
         show_start_banner(console, break_duration, "break", "Break Time!")
         break_start_time = datetime.now()
@@ -137,9 +139,10 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
         else:
             show_interrupt_banner(console, "break", round(break_elapsed / 60))
 
-        if break_status == "completed" and continue_to_next_session(console):
+        continued = break_status == "completed" and continue_to_next_session(console)
+        if continued:
             start(duration=duration, task=task, break_duration=break_duration, no_break=no_break) 
-    if status == "completed" and continue_to_next_session(console):
+    if not continued and status == "completed" and continue_to_next_session():
         start(duration=duration, task=task, break_duration=break_duration, no_break=no_break)
 
 
@@ -179,7 +182,7 @@ def stats():
     sessions = get_all_sessions(focus_session_data.data_path)
     current_streak = get_streak(focus_session_data.data_path)
     total_sessions = len(sessions)
-    sessions_today = get_sessions_today(focus_session_data.data_path)
+    sessions_today = get_number_completed_focus_sessions_today(focus_session_data.data_path)
     total_focus = sum(s["actual_duration"] for s in sessions if s["session_type"] == "focus")
 
     show_stats(console, current_streak, total_sessions, sessions_today, total_focus // 60)

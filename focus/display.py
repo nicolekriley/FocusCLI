@@ -46,7 +46,7 @@ def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int
 def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
     # show stats of current streak, total sessions, sessions today, total focus time
     emoji = Emoji("chart_with_upwards_trend")
-    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nSessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 
@@ -106,7 +106,7 @@ def make_progress_bar(console: Console) -> Progress:
     )
 
 
-def continue_to_next_session(console: Console) -> bool:
+def continue_to_next_session() -> bool:
     return Confirm.ask("\n:repeat: [bold]Ready for the next session?[/bold] :repeat:", default=True)
 
 

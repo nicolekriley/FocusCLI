@@ -104,7 +104,7 @@ def get_max_sessions_per_day(data_path: Path) -> int:
     return max(sessions_per_day.values(), default=0)
 
 
-def get_sessions_today(data_path: Path) -> int:
+def get_number_completed_focus_sessions_today(data_path: Path) -> int:
     """Return the number of completed focus sessions today."""
     records = _load_all(data_path)
     today = datetime.now().date()
@@ -120,7 +120,7 @@ def get_sessions_today(data_path: Path) -> int:
     return count
 
 
-def get_sessions_today_before_last_long_break(data_path: Path) -> int:
+def get_number_completed_focus_sessions_today_before_last_long_break(data_path: Path) -> int:
     """Return the number of completed focus sessions today before the last break session."""
     records = _load_all(data_path)
     today = datetime.now().date()

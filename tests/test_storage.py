@@ -2,7 +2,18 @@
 Tests for storage module.
 '''
 
-from focus.storage import _load_all, save_session, get_sessions_last_n_days, get_max_sessions_per_day, get_longest_streak, get_streak, SessionRecord
+from focus.storage import (
+    _load_all,
+    save_session, 
+    get_sessions_last_n_days, 
+    get_max_sessions_per_day, 
+    get_longest_streak, 
+    get_streak, 
+    SessionRecord, 
+    get_number_completed_focus_sessions_today, 
+    get_number_completed_focus_sessions_today_before_last_long_break, 
+    get_all_sessions
+)
 from datetime import datetime, timedelta
 
 def _today_midnight() -> datetime:
@@ -243,3 +254,310 @@ def test_get_max_sessions_per_day(tmp_path):
 def test_get_max_sessions_per_day_no_sessions(tmp_path):
     data_path = tmp_path / "sessions.json"
     assert get_max_sessions_per_day(data_path) == 0  # No sessions, so should return 0
+
+def test_get_max_sessions_per_day_mixed_session_types(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days with a mix of focus and break sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=25 if j % 2 == 0 else 5,
+                actual_duration=25 if j % 2 == 0 else 5,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:25:00" if j % 2 == 0 else f"2024-01-0{i+1}T10:05:00",
+                status="completed",
+                session_type="focus" if j % 2 == 0 else "break"
+            )
+            save_session(data_path, record)
+    assert get_max_sessions_per_day(data_path) == 2  # Only the focus sessions should be counted, so max should be 2
+
+def test_get_max_sessions_per_day_all_breaks(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days, all are break sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=5,
+                actual_duration=5,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:05:00",
+                status="completed",
+                session_type="break"
+            )
+            save_session(data_path, record)
+    assert get_max_sessions_per_day(data_path) == 0  # All sessions are breaks, so should return 0
+
+
+def test_get_all_sessions(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days with varying number of sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=25,
+                actual_duration=25,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:25:00",
+                status="completed",
+                session_type="focus"
+            )
+            save_session(data_path, record)
+    all_sessions = get_all_sessions(data_path)
+    assert len(all_sessions) == 6  # Total sessions should be 1 + 2 + 3 = 6
+
+def test_get_all_sessions_no_sessions(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    all_sessions = get_all_sessions(data_path)
+    assert len(all_sessions) == 0  # No sessions, so should return empty list
+
+
+def test_get_all_sessions_mixed_session_types(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days with a mix of focus and break sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=25 if j % 2 == 0 else 5,
+                actual_duration=25 if j % 2 == 0 else 5,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:25:00" if j % 2 == 0 else f"2024-01-0{i+1}T10:05:00",
+                status="completed",
+                session_type="focus" if j % 2 == 0 else "break"
+            )
+            save_session(data_path, record)
+    all_sessions = get_all_sessions(data_path)
+    assert len(all_sessions) == 6  # Total sessions should be 1 + 2 + 3 = 6, regardless of type
+
+def test_get_all_sessions_only_breaks(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days, all are break sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=5,
+                actual_duration=5,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:05:00",
+                status="completed",
+                session_type="break"
+            )
+            save_session(data_path, record)
+    all_sessions = get_all_sessions(data_path)
+    assert len(all_sessions) == 6  # Total sessions should be 1 + 2 + 3 = 6, regardless of type
+
+def test_get_all_sessions_with_interrupted(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 3 days with a mix of completed and interrupted sessions
+    for i in range(3):
+        for j in range(i + 1):  # Day 0 has 1 session, Day 1 has 2 sessions, Day 2 has 3 sessions
+            record = SessionRecord(
+                id=str(i*10+j), 
+                task=f"Task {i*10+j}",
+                planned_duration=25,
+                actual_duration=25 if j % 2 == 0 else 10,
+                started_at=f"2024-01-0{i+1}T10:00:00",
+                ended_at=f"2024-01-0{i+1}T10:25:00" if j % 2 == 0 else f"2024-01-0{i+1}T10:10:00",
+                status="completed" if j % 2 == 0 else "interrupted",
+                session_type="focus"
+            )
+            save_session(data_path, record)
+    all_sessions = get_all_sessions(data_path)
+    assert len(all_sessions) == 6  # Total sessions should be 1 + 2 + 3 = 6, regardless of status
+
+def test_get_number_completed_focus_sessions_today(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat(),
+            status="completed",
+            session_type="focus"
+        )
+        save_session(data_path, record)
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 1  # Only the session for today should be returned
+
+def test_get_number_completed_focus_sessions_today_no_sessions(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 0  # No sessions, so should return 0
+
+def test_get_number_completed_focus_sessions_today_all_old(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for 5 days, all older than today
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat(),
+            status="completed",
+            session_type="focus"
+        )
+        save_session(data_path, record)
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 0  # All sessions are old, so should return 0
+
+def test_get_number_completed_focus_sessions_today_mixed_session_types(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a mix of focus and break sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25 if i % 2 == 0 else 5,
+            actual_duration=25 if i % 2 == 0 else 5,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25 if i % 2 == 0 else 5)).isoformat(),
+            status="completed",
+            session_type="focus" if i % 2 == 0 else "break"
+        )
+        save_session(data_path, record)
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 1  # Only the focus session for today should be counted
+
+def test_get_number_completed_focus_sessions_today_only_breaks(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, all are break sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=5,
+            actual_duration=5,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=5)).isoformat(),
+            status="completed",
+            session_type="break"
+        )
+        save_session(data_path, record)
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 0  # All sessions are breaks, so should return 0
+
+def test_get_number_completed_focus_sessions_today_with_interrupted(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a mix of completed and interrupted sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25 if i % 2 == 0 else 10,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
+            status="completed" if i % 2 == 0 else "interrupted",
+            session_type="focus"
+        )
+        save_session(data_path, record)
+    today_sessions = get_number_completed_focus_sessions_today(data_path)
+    assert today_sessions == 1  # Only the completed focus session for today should be counted
+
+
+def test_get_number_completed_focus_sessions_today_before_last_long_break(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a break session in between
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat(),
+            status="completed",
+            session_type="focus" if i != 2 else "break"  # Day 2 is a break session
+        )
+        save_session(data_path, record)
+    sessions_before_break = get_number_completed_focus_sessions_today_before_last_long_break(data_path)
+    assert sessions_before_break == 2  # Should count the two focus sessions before the break session
+
+def test_get_number_completed_focus_sessions_today_before_last_long_break_no_break(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with no break session
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat(),
+            status="completed",
+            session_type="focus"
+        )
+        save_session(data_path, record)
+    sessions_before_break = get_number_completed_focus_sessions_today_before_last_long_break(data_path)
+    assert sessions_before_break == 5  # Should count all 5 focus sessions since there is no break session
+
+def test_get_number_completed_focus_sessions_today_before_last_long_break_all_breaks(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, all are break sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=5,
+            actual_duration=5,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=5)).isoformat(),
+            status="completed",
+            session_type="break"
+        )
+        save_session(data_path, record)
+    sessions_before_break = get_number_completed_focus_sessions_today_before_last_long_break(data_path)
+    assert sessions_before_break == 0  # Should return 0 since there are no focus sessions before the last break session
+
+def test_get_number_completed_focus_sessions_today_before_last_long_break_mixed_session_types(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a mix of focus and break sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25 if i % 2 == 0 else 5,
+            actual_duration=25 if i % 2 == 0 else 5,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25 if i % 2 == 0 else 5)).isoformat(),
+            status="completed",
+            session_type="focus" if i % 2 == 0 else "break"
+        )
+        save_session(data_path, record)
+    sessions_before_break = get_number_completed_focus_sessions_today_before_last_long_break(data_path)
+    assert sessions_before_break == 3  # Should count the three focus sessions before the last break session (days 0, 2, and 4)
+
+def test_get_number_completed_focus_sessions_today_before_last_long_break_with_interrupted(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a mix of completed and interrupted sessions, and a break session in between
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=25,
+            actual_duration=25 if i % 2 == 0 else 10,
+            started_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() - timedelta(days=4-i) + timedelta(hours=10, minutes=25)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
+            status="completed" if i % 2 == 0 else "interrupted",
+            session_type="focus" if i != 2 else "break"  # Day 2 is a break session
+        )
+        save_session(data_path, record)
+    sessions_before_break = get_number_completed_focus_sessions_today_before_last_long_break(data_path)
+    assert sessions_before_break == 1  # Should count the one completed focus session before the break session
+
+
