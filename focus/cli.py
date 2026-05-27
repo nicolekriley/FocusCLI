@@ -16,7 +16,11 @@ from display import (
     prompt_reflection, 
     continue_to_next_session, 
     long_break_notification, 
-    show_config
+    show_config, 
+    reset_cancelled, 
+    should_reset, 
+    reset_successful, 
+    no_sessions_found
 )
 from timer import run_countdown, TimerResult
 from config import FocusConfig
@@ -232,15 +236,14 @@ def reset():
     console = Console()
     focus_session_data = FocusConfig.load()
     if not focus_session_data.data_path.exists():
-        console.print("[dim]No session data found to reset.[/dim]")
+        no_sessions_found(console)
         return
-    
-    confirm = click.confirm("Are you sure you want to reset all session data? This cannot be undone.", default=False)
+    confirm = should_reset()
     if confirm:
         focus_session_data.data_path.unlink()
-        console.print("[green]All session data has been reset.[/green]")
+        reset_successful(console)
     else:
-        console.print("[yellow]Reset cancelled. Your session data is safe.[/yellow]")
+        reset_cancelled(console)
 
 
 if __name__ == '__main__':

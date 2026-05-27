@@ -60,7 +60,7 @@ def show_best_stats(console: Console, best_streak: int, best_focus_count: int, m
 
 def show_history_table(console: Console, length: int, sessions: list[SessionRecord]) -> None:
     if not sessions:
-        console.print("[dim]No sessions found.[/dim]")
+        no_sessions_found(console)
         return
     
     table = Table(title=f"Focus Session History (Last {length} Days)")
@@ -125,3 +125,19 @@ def show_config(console: Console, config_dict: dict[str, object]) -> None:
     for key, value in config_dict.items():
         table.add_row(key, str(value))
     console.print(table)
+
+
+def should_reset() -> bool: 
+    return Confirm.ask("\n:warning: [bold red]Are you sure you want to reset your data? This action cannot be undone. [/bold red] :warning:", default=False)
+
+
+def reset_successful(console: Console) -> None: 
+    console.print("\n:data: [bold green]Data reset successful![/bold green] :data:")
+
+
+def reset_cancelled(console: Console) -> None:
+    console.print("\n:x: [bold yellow]Data reset cancelled. Your data is safe.[/bold yellow] :x:")
+
+
+def no_sessions_found(console: Console) -> None:
+    console.print("[dim]No sessions found.[/dim]")
