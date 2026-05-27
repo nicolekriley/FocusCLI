@@ -116,3 +116,12 @@ def long_break_notification(console: Console, cycles: int, given_break_duration:
         console.print(f"[dim]You specified a break duration of {given_break_duration} minutes.[/dim]")
     console.print(f"[dim]The recommended break duration is {recommended_break_duration} minutes.[/dim]")
     return Confirm.ask(f"Would you like to take the recommended {recommended_break_duration}-minute break instead?", default=True)
+
+
+def show_config(console: Console, config_dict: dict[str, object]) -> None:
+    table = Table(title="Current Configuration")
+    table.add_column("Setting", style="cyan", no_wrap=True)
+    table.add_column("Value", style="magenta")
+    for key, value in config_dict.items():
+        table.add_row(key, str(value))
+    console.print(table)

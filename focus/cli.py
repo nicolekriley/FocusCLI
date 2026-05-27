@@ -15,7 +15,8 @@ from display import (
     show_best_stats, 
     prompt_reflection, 
     continue_to_next_session, 
-    long_break_notification
+    long_break_notification, 
+    show_config
 )
 from timer import run_countdown, TimerResult
 from config import FocusConfig
@@ -28,7 +29,7 @@ from storage import (
     get_max_sessions_per_day, 
     get_number_completed_focus_sessions_today, 
     get_all_sessions,
-    get_number_completed_focus_sessions_today_before_last_long_break, 
+    get_number_completed_focus_sessions_today_since_last_long_break, 
     get_total_focus_mins, 
     get_most_focus_min
 )
@@ -67,7 +68,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     if duration != 0 or break_duration != 0: 
         duration = duration or config_focus_duration
         break_duration = break_duration or config_break_duration
-    if get_number_completed_focus_sessions_today_before_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
+    if get_number_completed_focus_sessions_today_since_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
         longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
         if longer_break: 
             duration = cfg.long_break_minutes
@@ -77,6 +78,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     start_time = datetime.now()
     total_seconds = duration * 60
     elapsed, status = run_countdown(total_seconds, lambda e, t: None)  # No-op on_tick for now
+
     end_time = datetime.now()
     
     print(duration, elapsed, status)
@@ -219,9 +221,7 @@ def config():
     '''
     console = Console()
     cfg = FocusConfig.load()
-    console.print("[bold underline]Current Configuration:[/bold underline]")
-    for key, value in cfg.show().items():
-        console.print(f"[cyan]{key}:[/cyan] {value}")
+    show_config(console, cfg.show())
 
 
 @focus.command()
