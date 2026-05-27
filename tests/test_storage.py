@@ -18,7 +18,6 @@ from focus.storage import (
 )
 from datetime import datetime, timedelta
 
-
 def _today_midnight() -> datetime:
     return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -407,8 +406,8 @@ def test_get_number_completed_focus_sessions_today(tmp_path):
             task=f"Task {i}",
             planned_duration=25 * 60,
             actual_duration=25 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=25)).isoformat(),
+            started_at= (_today_midnight() + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10, minutes=25)).isoformat(),
             status="completed",
             session_type="focus"
         )
@@ -451,8 +450,8 @@ def test_get_number_completed_focus_sessions_today_mixed_session_types(tmp_path)
             task=f"Task {i}",
             planned_duration=25 * 60 if i % 2 == 0 else 5 * 60,
             actual_duration=25 * 60 if i % 2 == 0 else 5 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=25 if i % 2 == 0 else 5)).isoformat(),
+            started_at= (_today_midnight() + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10, minutes=25 if i % 2 == 0 else 5)).isoformat(),
             status="completed",
             session_type="focus" if i % 2 == 0 else "break"
         )
@@ -489,8 +488,8 @@ def test_get_number_completed_focus_sessions_today_with_interrupted(tmp_path):
             task=f"Task {i}",
             planned_duration=25 * 60,
             actual_duration=25 * 60 if i % 2 == 0 else 10 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=25)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
+            started_at= (_today_midnight() + timedelta(hours=10, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10, minutes=25 if i % 2 == 0 else 10)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
             status="completed" if i % 2 == 0 else "interrupted",
             session_type="focus"
         )
@@ -506,15 +505,15 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break(tmp_pat
         record = SessionRecord(
             id=str(i), 
             task=f"Task {i}",
-            planned_duration=25 * 60,
-            actual_duration=25 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=25)).isoformat(),
+            planned_duration=25 * 60 if i % 2 == 0 else 15 * 60,
+            actual_duration=25 * 60 if i % 2 == 0 else 15 * 60,
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10 + i, minutes=25 if i % 2 == 0 else 15)).isoformat(),
             status="completed",
             session_type="focus" if i != 2 else "break"  # 3rd session is a break session, so should reset the count of focus sessions since the last long break session
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 15)
     assert sessions_since_break == 2  # Should count the two focus sessions on the current day since the break session
 
 
@@ -527,13 +526,13 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break_no_brea
             task=f"Task {i}",
             planned_duration=25 * 60,
             actual_duration=25 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10, minutes=25)).isoformat(),
-            status="completed",
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10, minutes=25)).isoformat(),
+            status="completed", 
             session_type="focus"
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 15)
     assert sessions_since_break == 5  # Should count all 5 focus sessions today since there is no break session
 
 
@@ -552,7 +551,7 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break_only_ol
             session_type="focus"
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 15)
     assert sessions_since_break == 0  # Should return 0 since there are no focus sessions on the current day since the break session
 
 
@@ -565,14 +564,33 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break_all_bre
             task=f"Task {i}",
             planned_duration=5 * 60,
             actual_duration=5 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=5)).isoformat(),
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10 + i, minutes=5)).isoformat(),
             status="completed",
             session_type="break"
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 10)
     assert sessions_since_break == 0  # Should return 0 since there are no focus sessions before the last long break session
+
+
+def test_get_number_completed_focus_sessions_today_since_last_long_break_only_short_breaks_and_focus(tmp_path):
+    data_path = tmp_path / "sessions.json"
+    # Create records for today and previous days, with a mix of focus sessions and short break sessions, but no long break sessions
+    for i in range(5):
+        record = SessionRecord(
+            id=str(i), 
+            task=f"Task {i}",
+            planned_duration=5 * 60 if i % 2 == 1 else 10 * 60,
+            actual_duration=5 * 60 if i % 2 == 1 else 10 * 60,
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10 + i, minutes=5 if i % 2 == 1 else 10)).isoformat(),
+            status="completed",
+            session_type="break" if i == 1 else "focus"
+        )
+        save_session(data_path, record)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 15)
+    assert sessions_since_break == 4  # Should count all 5 focus sessions today (not the short break session) since there are no long break sessions
 
 
 def test_get_number_completed_focus_sessions_today_since_last_long_break_mixed_session_types(tmp_path):
@@ -582,16 +600,16 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break_mixed_s
         record = SessionRecord(
             id=str(i), 
             task=f"Task {i}",
-            planned_duration=25 * 60 if i % 2 == 0 else 5 * 60,
-            actual_duration=25 * 60 if i % 2 == 0 else 5 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=25 if i % 2 == 0 else 5)).isoformat(),
+            planned_duration=25 * 60 if i == 4 else 5 * 60,
+            actual_duration=25 * 60 if i == 4 else 5 * 60,
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10 + i, minutes=25 if i % 2 == 0 else 5)).isoformat(),
             status="completed",
             session_type="focus" if i % 2 == 0 else "break"
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
-    assert sessions_since_break == 1  # Should count the one focus session since the last break session
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 5)
+    assert sessions_since_break == 1  # Should count the one focus session since the last long break session.
 
 
 def test_get_number_completed_focus_sessions_today_since_last_long_break_with_interrupted(tmp_path):
@@ -601,15 +619,15 @@ def test_get_number_completed_focus_sessions_today_since_last_long_break_with_in
         record = SessionRecord(
             id=str(i), 
             task=f"Task {i}",
-            planned_duration=25 * 60,
-            actual_duration=25 * 60 if i % 2 == 0 else 10 * 60,
-            started_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=0)).isoformat(),
-            ended_at= (_today_midnight() - timedelta(days=0) + timedelta(hours=10 + i, minutes=25)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
+            planned_duration=25 * 60 if i != 2 else 15 * 60,
+            actual_duration=25 * 60 if i % 2 == 0 else 15 * 60,
+            started_at= (_today_midnight() + timedelta(hours=10 + i, minutes=0)).isoformat(),
+            ended_at= (_today_midnight() + timedelta(hours=10 + i, minutes=25 if i % 2 == 0 else 15)).isoformat() if i % 2 == 0 else f"2024-01-0{5-i}T10:10:00",
             status="completed" if i % 2 == 0 else "interrupted",
             session_type="focus" if i != 2 else "break"  # Day 2 is a break session
         )
         save_session(data_path, record)
-    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path)
+    sessions_since_break = get_number_completed_focus_sessions_today_since_last_long_break(data_path, 10) 
     assert sessions_since_break == 1  # Should count the one completed focus session since the break session
 
 
@@ -796,9 +814,9 @@ def test_get_total_focus_mins_with_interrupted_mixed_session_types(tmp_path):
             started_at=f"2024-01-0{i+1}T10:00:00",
             ended_at=f"2024-01-0{i+1}T10:25:00" if i % 2 == 0 else f"2024-01-0{i+1}T10:05:00",
             status="completed" if i != 1 else "interrupted",
-            session_type="focus" if i <= 2 else "break"
+            session_type="focus" if i != 1 else "break"
         )
         save_session(data_path, record)
     total_focus_mins = get_total_focus_mins(data_path, include_interrupted=True)
-    assert total_focus_mins == 60  # The total focus minutes should be 25 (day 0) + 10 (day 1, interrupted) + 25 (day 2) = 60
+    assert total_focus_mins == 50  # The total focus minutes should be 25 (day 0) + 25 (day 2) = 50
 
