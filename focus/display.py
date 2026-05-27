@@ -45,6 +45,10 @@ def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int
 
 def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
     # show stats of current streak, total sessions, sessions today, total focus time
+    if total_sessions == 0: 
+        no_sessions_found(console)
+        return
+    
     emoji = Emoji("chart_with_upwards_trend")
     panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
@@ -52,6 +56,10 @@ def show_stats(console: Console, current_streak: int, total_sessions: int, sessi
 
 
 def show_best_stats(console: Console, best_streak: int, best_focus_count: int, most_focus_min: int) -> None:
+    if best_streak == 0 and best_focus_count == 0 and most_focus_min == 0:
+        no_sessions_found(console)
+        return
+    
     emoji = Emoji("trophy")
     panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
     aligned_text = Align.center(panel_text)
