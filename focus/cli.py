@@ -97,7 +97,7 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
 def start(duration: int, task: str, break_duration: int, no_break: bool):
     '''
     Start a focus session with an optional break. Accepts duration in minutes, task description, and break duration. 
-    Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the la prompts for a longer break.
+    Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the last long break, prompts for a longer break.
     Saves session results and reflections to storage.\n
     Args: \n
         --duration: Duration of focus session in minutes (overrides config). Allows for 0 duration for testing purposes.
@@ -111,9 +111,9 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     config_focus_duration = cfg.focus_minutes
     config_break_duration = cfg.break_minutes
     if duration is None:
-        duration = duration or config_focus_duration
+        duration = config_focus_duration
     if break_duration is None:
-        break_duration = break_duration or config_break_duration
+        break_duration = config_break_duration
     if not(no_break) and get_number_completed_focus_sessions_today_since_last_long_break(cfg.data_path, cfg.long_break_minutes) >= cfg.cycles:
         longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
         if longer_break: 

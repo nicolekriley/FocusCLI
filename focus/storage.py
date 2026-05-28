@@ -161,3 +161,4 @@ def get_most_focus_min(data_path: Path, include_interrupted: bool = False) -> in
         return round(max((r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus"), default=0)/60)
     else: 
         return round(max((r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus"), default=0)/60)
+    
