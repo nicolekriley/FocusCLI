@@ -26,6 +26,9 @@ def _load_all(data_path: Path) -> list[SessionRecord]:
         return []
     with open(data_path) as f:
         return json.load(f)
+
+def get_all_sessions(data_path: Path) -> list[SessionRecord]:
+    return _load_all(data_path)
     
 def _save_all(data_path: Path, records: list[SessionRecord]) -> None:
     data_path.parent.mkdir(parents=True, exist_ok=True)
@@ -99,3 +102,63 @@ def get_max_sessions_per_day(data_path: Path) -> int:
             except ValueError:
                 continue
     return max(sessions_per_day.values(), default=0)
+
+
+def get_number_completed_focus_sessions_today(data_path: Path) -> int:
+    """Return the number of completed focus sessions today."""
+    records = _load_all(data_path)
+    today = datetime.now().date()
+    count = 0
+    for r in records:
+        if r.get("status") == "completed" and r.get("session_type") == "focus":
+            try:
+                d = datetime.fromisoformat(r["started_at"]).date()
+                if d == today:
+                    count += 1
+            except ValueError:
+                continue
+    return count
+
+
+def get_number_completed_focus_sessions_today_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+    """Return the number of completed focus sessions today since the last long break."""
+    records = _load_all(data_path)
+    today = datetime.now().date()
+    last_break_time = None
+    for r in reversed(records):
+        if r.get("session_type") == "break" and r.get("actual_duration",0) >= long_break_minutes * 60:
+            try:
+                last_break_time = datetime.fromisoformat(r["started_at"])
+                break
+            except ValueError:
+                continue
+    count = 0
+    for r in records:
+        if r.get("status") == "completed" and r.get("session_type") == "focus":
+            try:
+                start_time = datetime.fromisoformat(r["started_at"])
+                if start_time.date() == today and (last_break_time is None or start_time > last_break_time):
+                    count += 1
+            except ValueError:
+                continue
+    return count
+
+
+def get_total_focus_mins(data_path: Path, include_interrupted: bool = False) -> int:
+    """Return total focus time in minutes."""
+    records = _load_all(data_path)
+
+    if include_interrupted:
+        return round(sum(r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus") / 60 )
+    else:
+        return round(sum(r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus") / 60)
+
+
+def get_most_focus_min(data_path: Path, include_interrupted: bool = False) -> int:
+    """Return the longest focus session in minutes."""
+    records = _load_all(data_path)
+    if include_interrupted:
+        return round(max((r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus"), default=0)/60)
+    else: 
+        return round(max((r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus"), default=0)/60)
+    

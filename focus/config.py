@@ -47,8 +47,7 @@ class FocusConfig:
             long_focus_minutes=cfg.get("long_focus_minutes", DEFAULT_LONG_FOCUS_MINUTES),
             data_path=Path(cfg.get("data_path", DATA_FILE_PATH)),
         )
-
-        
+ 
     
     def show(self)  -> dict[str, object]:
         return {

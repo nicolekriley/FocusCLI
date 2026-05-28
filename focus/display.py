@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.table import Table
 from storage import SessionRecord
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.align import Align
 
@@ -45,13 +45,21 @@ def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int
 
 def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
     # show stats of current streak, total sessions, sessions today, total focus time
+    if total_sessions == 0: 
+        no_sessions_found(console)
+        return
+    
     emoji = Emoji("chart_with_upwards_trend")
-    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nSessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 
 
 def show_best_stats(console: Console, best_streak: int, best_focus_count: int, most_focus_min: int) -> None:
+    if best_streak == 0 and best_focus_count == 0 and most_focus_min == 0:
+        no_sessions_found(console)
+        return
+    
     emoji = Emoji("trophy")
     panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
     aligned_text = Align.center(panel_text)
@@ -60,7 +68,7 @@ def show_best_stats(console: Console, best_streak: int, best_focus_count: int, m
 
 def show_history_table(console: Console, length: int, sessions: list[SessionRecord]) -> None:
     if not sessions:
-        console.print("[dim]No sessions found.[/dim]")
+        no_sessions_found(console)
         return
     
     table = Table(title=f"Focus Session History (Last {length} Days)")
@@ -104,3 +112,40 @@ def make_progress_bar(console: Console) -> Progress:
         TimeRemainingColumn(),
         console=console,
     )
+
+
+def continue_to_next_session() -> bool:
+    return Confirm.ask("\n:repeat: [bold]Ready for the next session?[/bold] :repeat:", default=True)
+
+
+def long_break_notification(console: Console, cycles: int, given_break_duration: int, recommended_break_duration: int) -> bool:
+    console.print(f"\n:coffee: [bold yellow]You've completed {cycles} focus sessions! Time for a longer break![/bold yellow] :coffee:")
+    if given_break_duration: 
+        console.print(f"[dim]You specified a break duration of {given_break_duration} minutes.[/dim]")
+    console.print(f"[dim]The recommended break duration is {recommended_break_duration} minutes.[/dim]")
+    return Confirm.ask(f"Would you like to take the recommended {recommended_break_duration}-minute break instead?", default=True)
+
+
+def show_config(console: Console, config_dict: dict[str, object]) -> None:
+    table = Table(title="Current Configuration")
+    table.add_column("Setting", style="cyan", no_wrap=True)
+    table.add_column("Value", style="magenta")
+    for key, value in config_dict.items():
+        table.add_row(key, str(value))
+    console.print(table)
+
+
+def should_reset() -> bool: 
+    return Confirm.ask("\n:warning:  [bold red]Are you sure you want to reset your data? This action cannot be undone.[/bold red] :warning: ", default=False)
+
+
+def reset_successful(console: Console) -> None: 
+    console.print("\n:white_check_mark: [bold green]Data reset successful![/bold green] :white_check_mark:")
+
+
+def reset_cancelled(console: Console) -> None:
+    console.print("\n:x: [bold yellow]Data reset cancelled. Your data is safe.[/bold yellow] :x:")
+
+
+def no_sessions_found(console: Console) -> None:
+    console.print("[dim]No sessions found.[/dim]")
