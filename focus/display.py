@@ -136,7 +136,7 @@ def show_config(console: Console, config_dict: dict[str, object]) -> None:
 
 
 def should_reset() -> bool: 
-    return Confirm.ask("\n:warning:  [bold red]Are you sure you want to reset your data? This action cannot be undone.[/bold red] :warning:", default=False)
+    return Confirm.ask("\n:warning:  [bold red]Are you sure you want to reset your data? This action cannot be undone.[/bold red] :warning: ", default=False)
 
 
 def reset_successful(console: Console) -> None: 
