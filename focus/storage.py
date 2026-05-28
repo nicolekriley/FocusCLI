@@ -120,13 +120,13 @@ def get_number_completed_focus_sessions_today(data_path: Path) -> int:
     return count
 
 
-def get_number_completed_focus_sessions_today_since_last_long_break(data_path: Path) -> int:
+def get_number_completed_focus_sessions_today_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
     """Return the number of completed focus sessions today since the last long break."""
     records = _load_all(data_path)
     today = datetime.now().date()
     last_break_time = None
     for r in reversed(records):
-        if r.get("session_type") == "break":
+        if r.get("session_type") == "break" and r.get("actual_duration",0) >= long_break_minutes * 60:
             try:
                 last_break_time = datetime.fromisoformat(r["started_at"])
                 break
@@ -147,8 +147,7 @@ def get_number_completed_focus_sessions_today_since_last_long_break(data_path: P
 def get_total_focus_mins(data_path: Path, include_interrupted: bool = False) -> int:
     """Return total focus time in minutes."""
     records = _load_all(data_path)
-    for r in records: 
-        print(f"record: {r}")
+
     if include_interrupted:
         return round(sum(r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus") / 60 )
     else:

@@ -140,7 +140,7 @@ def should_reset() -> bool:
 
 
 def reset_successful(console: Console) -> None: 
-    console.print("\n:data: [bold green]Data reset successful![/bold green] :data:")
+    console.print("\n:white_check_mark: [bold green]Data reset successful![/bold green] :white_check_mark:")
 
 
 def reset_cancelled(console: Console) -> None:

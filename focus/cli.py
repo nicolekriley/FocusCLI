@@ -6,7 +6,6 @@ Adds in functionality to run the timer and display logic together. Handles user 
 from __future__ import annotations
 from datetime import datetime
 from display import (
-    continue_to_next_session,
     show_history_table, 
     show_start_banner, 
     show_complete_banner, 
@@ -14,7 +13,6 @@ from display import (
     show_stats, 
     show_best_stats, 
     prompt_reflection, 
-    continue_to_next_session, 
     long_break_notification, 
     show_config, 
     reset_cancelled, 
@@ -84,17 +82,17 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
     save_session(data_path, record)
 
     if status == "completed":
-        show_complete_banner(console, "focus", round(elapsed / 60))
+        show_complete_banner(console, focus_or_break, round(elapsed / 60))
     else:
-        show_interrupt_banner(console, "focus", round(elapsed / 60))
+        show_interrupt_banner(console, focus_or_break, round(elapsed / 60))
 
-    return timer_result
+    return timer_result.status
 
 
 @focus.command()
-@click.option("--duration", "-d", type=int, default=25, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", type=int, default=5, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
 def start(duration: int, task: str, break_duration: int, no_break: bool):
     '''
@@ -102,9 +100,9 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the la prompts for a longer break.
     Saves session results and reflections to storage.\n
     Args: \n
-        --duration: Duration of focus session in minutes (overrides config)
+        --duration: Duration of focus session in minutes (overrides config). Allows for 0 duration for testing purposes.
         --task: Description of the task you're working on (default: "General Focus")
-        --break-duration: Duration of break session in minutes (overrides config)
+        --break-duration: Duration of break session in minutes (overrides config). Allows for 0 duration for testing purposes.
         --no-break: Skip the break after this session
     '''
     console = Console()
@@ -112,16 +110,16 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
 
     config_focus_duration = cfg.focus_minutes
     config_break_duration = cfg.break_minutes
-    if duration != 0 or break_duration != 0: 
+    if duration is None:
         duration = duration or config_focus_duration
+    if break_duration is None:
         break_duration = break_duration or config_break_duration
-    if not(no_break) and get_number_completed_focus_sessions_today_since_last_long_break(Path(cfg.data_path)) >= cfg.cycles:
+    if not(no_break) and get_number_completed_focus_sessions_today_since_last_long_break(cfg.data_path, cfg.long_break_minutes) >= cfg.cycles:
         longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
         if longer_break: 
             break_duration = cfg.long_break_minutes
     status = trigger_session(console, duration, task, cfg.data_path, "focus")
-    
-    prompted = False 
+     
     if not no_break and status == "completed":
         trigger_session(console, break_duration, task + " - Break", cfg.data_path, "break")
 
