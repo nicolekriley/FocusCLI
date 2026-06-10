@@ -18,7 +18,9 @@ from display import (
     reset_cancelled, 
     should_reset, 
     reset_successful, 
-    no_sessions_found
+    no_sessions_found, 
+    make_progress_bar, 
+    exit_multi_session
 )
 from timer import run_countdown, TimerResult
 from storage import (
@@ -51,7 +53,17 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
 
     start_time = datetime.now()
     total_seconds = duration * 60
-    elapsed, status = run_countdown(total_seconds, lambda e, t: None)  # No-op on_tick for now
+    
+    with make_progress_bar(console) as progress:
+        task_progress = progress.add_task(f"{focus_or_break.capitalize()} Time Remaining:", total=total_seconds)
+        def on_tick(elapsed, total) -> None:
+            progress.update(task_progress, completed=elapsed)
+
+        elapsed, status = run_countdown(total_seconds, on_tick) 
+        if status == "interrupted": 
+            progress.update(task_progress, description=f"{focus_or_break.capitalize()} Time Interrupted: {round(elapsed / 60, 1)} minutes")
+        else: 
+            progress.update(task_progress, completed=elapsed, description=f"{focus_or_break.capitalize()} Time Finished: {round(elapsed / 60, 1)} minutes") 
 
     end_time = datetime.now()
 
@@ -89,6 +101,54 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
     return timer_result.status
 
 
+def trigger_session_and_break(duration: int, task: str, break_duration: int) -> None:
+    console = Console()
+    cfg = FocusConfig.load()
+    config_focus_duration = cfg.focus_minutes
+    config_break_duration = cfg.break_minutes
+    if duration is None:
+        duration = config_focus_duration
+    if break_duration is None:
+        break_duration = config_break_duration
+    if long_break_notification(console, cfg.cycles, break_duration, cfg.long_break_minutes):
+        break_duration = cfg.long_break_minutes
+    status = trigger_session(console, duration, task, cfg.data_path, "focus")
+    if status == "completed":
+        trigger_session(console, break_duration, task + " - Break", cfg.data_path, "break")
+
+@focus.command()
+@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
+@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
+@click.option("--number-of-cycles", "-c", type=int, default=2, help="Number of focus/break cycles to run (default: 1)")
+def multi_start(number_of_cycles: int, duration: int, task: str, break_duration: int, no_break: bool):
+    '''
+    Start multiple focus sessions with optional breaks. Accepts duration in minutes, task description, break duration, and number of cycles.
+    Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the last long break, prompts for a longer break.
+    Saves session results and reflections to storage.\n
+    Args: \n
+        --number-of-cycles: Number of focus/break cycles to run (default: 1)
+        --duration: Duration of focus session in minutes (overrides config). Allows for 0 duration for testing purposes.
+        --task: Description of the task you're working on (default: "General Focus")
+        --break-duration: Duration of break session in minutes (overrides config). Allows for 0 duration for testing purposes.
+        --no-break: Skip the break after this session
+    '''
+    console = Console()
+    for i in range(number_of_cycles):
+        status = ""
+        if no_break:
+            if duration is None:
+                duration = FocusConfig.load().focus_minutes
+            status = trigger_session(console, duration, task + f" - Cycle {i+1}", FocusConfig.load().data_path, "focus")
+        else: 
+            status = trigger_session_and_break(duration, task + f" - Cycle {i+1}", break_duration)
+        if status != "completed":
+            exit_multi_session(console)
+            break
+
+
+
 @focus.command()
 @click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
@@ -107,21 +167,10 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
     '''
     console = Console()
     cfg = FocusConfig.load()
-
-    config_focus_duration = cfg.focus_minutes
-    config_break_duration = cfg.break_minutes
-    if duration is None:
-        duration = config_focus_duration
-    if break_duration is None:
-        break_duration = config_break_duration
-    if not(no_break) and get_number_completed_focus_sessions_today_since_last_long_break(cfg.data_path, cfg.long_break_minutes) >= cfg.cycles:
-        longer_break = long_break_notification(console, cfg.cycles, cfg.break_minutes,cfg.long_break_minutes)
-        if longer_break: 
-            break_duration = cfg.long_break_minutes
-    status = trigger_session(console, duration, task, cfg.data_path, "focus")
-     
-    if not no_break and status == "completed":
-        trigger_session(console, break_duration, task + " - Break", cfg.data_path, "break")
+    if no_break:
+        trigger_session(console, duration, task, cfg.data_path, "focus")
+    else: 
+        trigger_session_and_break(duration, task, break_duration)
 
 
 @focus.command()
@@ -200,6 +249,7 @@ def reset():
         reset_successful(console)
     else:
         reset_cancelled(console)
+
 
 if __name__ == "__main__":
     focus()

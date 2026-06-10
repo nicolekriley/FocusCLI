@@ -117,6 +117,9 @@ def make_progress_bar(console: Console) -> Progress:
 def continue_to_next_session() -> bool:
     return Confirm.ask("\n:repeat: [bold]Ready for the next session?[/bold] :repeat:", default=True)
 
+def exit_multi_session(console: Console) -> None: 
+    console.print("\n:door: [bold]Exiting Multi session...[/bold] :door:")
+
 
 def long_break_notification(console: Console, cycles: int, given_break_duration: int, recommended_break_duration: int) -> bool:
     console.print(f"\n:coffee: [bold yellow]You've completed {cycles} focus sessions! Time for a longer break![/bold yellow] :coffee:")
