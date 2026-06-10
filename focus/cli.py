@@ -114,12 +114,9 @@ def trigger_session_and_break(duration: int, task: str, break_duration: int) -> 
     if get_number_completed_focus_sessions_today_since_last_long_break(cfg.data_path, cfg.long_break_minutes) >= cfg.cycles and long_break_notification(console, cfg.cycles, break_duration, cfg.long_break_minutes):
         break_duration = cfg.long_break_minutes
     status = trigger_session(console, duration, task, cfg.data_path, "focus")
-    if status == "completed":
-        break_status = trigger_session(console, break_duration, task + " - Break", cfg.data_path, "break")
-    if status == "completed" and break_status == "completed":
-        return "completed"
-    else: 
-        return "interrupted"
+    if status != "completed":
+        return status
+    return trigger_session(console, break_duration, task + " - Break", cfg.data_path, "break")
     
 
 @focus.command()
@@ -141,13 +138,14 @@ def multi_start(number_of_cycles: int, duration: int, task: str, break_duration:
         --no-break: Skip the break after this session
     '''
     console = Console()
+    cfg = FocusConfig.load()
     for i in range(number_of_cycles):
         if i > 0 and not continue_to_next_session():
             exit_multi_session(console)
             break
         status = ""
         if no_break:
-            status = trigger_session(console, duration, task + f" - Cycle {i+1}", FocusConfig.load().data_path, "focus")
+            status = trigger_session(console, duration or cfg.focus_minutes, task + f" - Cycle {i+1}", cfg.data_path, "focus")
         else: 
             status = trigger_session_and_break(duration, task + f" - Cycle {i+1}", break_duration)
         if status != "completed":
