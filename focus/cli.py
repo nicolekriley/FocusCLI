@@ -103,6 +103,7 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
 
 
 def trigger_session_and_break(duration: int, task: str, break_duration: int) -> str:
+    '''Triggers a focus session followed by a break session. Returns the status of both sessions.'''
     console = Console()
     cfg = FocusConfig.load()
     config_focus_duration = cfg.focus_minutes
