@@ -1,41 +1,42 @@
-## Important Design Decisions for this project
+## Important Design Decisions
 
-# Case 1: why trigger_session is separate from the Click commands that call it
-
-**The Problem:**
-Multiple functions need to use the trigger_session functionality as there are both `start` and `multi_start` commands. 
-
-**Options to consider:**
-- Have a single click function that is called whenever the function is needed 
-- Separate the logic into a separate function that can be called by both commands. 
-
-**What I chose and why:**
-By separating out the function that both commands can call, this work is easier to test and there is no adding unnecessary click wiring. 
-
-
-# Case 2: Why run_session_loop is a plain fuction versus a repeated Click invocation 
+## Case 1: Why `trigger_session` is separate from the Click commands that call it
 
 **The Problem:**
-In order to allow for users to run multiple sessions in a row, I needed to add that functionality 
+Both `start` and `multi_start` commands need to run a session, so the session logic needs to be accessible from two different entry points.
 
-**Options to consider:**
-- Call function `start` multiple times in a row withing `multi_start`
-- Use a for loop calling helper functions that do not invoke more Click functions. 
+**Options Considered:**
+- Duplicate the logic inside each Click command
+- Extract the logic into a shared helper that both commands call
 
-**What I chose and why:**
-I chose to use a for loop calling helper functions that do not invoke more Click functions. Click is designed to take in user input and commands from the terminal. Utilizing multiple calls to more click functions means that the Click context does not need to be created over again. Likewise, the point of click is to handle the wiring of input and output from the terminal. Instead, I can use that wiring once and focus on putting the core logic in regular python with a for loop and helper functions. 
+**What I Chose and Why:**
+I extracted the logic into `trigger_session`, a plain function both commands call. This avoids duplication, makes the function straightforward to unit test in isolation, and keeps Click commands thin so they handle CLI wiring only, not business logic.
+
+
+## Case 2: Why `run_session_loop` is a plain function versus repeated Click invocations
+
+**The Problem:**
+`multi_start` needs to run multiple sessions in sequence without re-entering Click's command machinery each time.
+
+**Options Considered:**
+- Call the `start` Click command multiple times inside `multi_start`
+- Use a for loop over plain helper functions, keeping Click out of the inner loop
+
+**What I Chose and Why:**
+I used a for loop over plain helper functions. Click is designed to handle terminal I/O wiring at the entry point so re-invoking a Click command repeatedly would recreate the Click context unnecessarily on each iteration and blurs the boundary between CLI wiring and core logic. By keeping the loop in plain Python, the Click context is created exactly once and the session logic stays easily testable.
+
 
 ## Case 3: Why `tick_interval=0` for testing instead of mocking `time.sleep`
 
 **The Problem:**
-In order to make testing easier without large intervals, there needs to be some way to allow for a 0 second interval for breaks and sessions. 
+Tests that exercise `countdown` would be unacceptably slow if they waited on real sleep intervals. There needs to be a way to run the timer at zero delay.
 
-**Options to Consider:**
-- Use `tick_interval=0` to allow for an interval with no time 
-- Mocking`time.sleep` to allow for an interval with no time
+**Options Considered:**
+- Pass `tick_interval=0` as a parameter to `countdown`
+- Mock `time.sleep` in tests to eliminate the wait
 
+**What I Chose and Why:**
+I added `tick_interval` as a parameter to `countdown` and default it to `0` in tests. This required no mocking infrastructure and has the bonus of being usable during manual command-line testing as you can pass `--tick-interval 0` to run through sessions instantly. Mocking `time.sleep` would speed up automated tests but wouldn't help during manual testing and would couple the tests more tightly to the implementation detail of which sleep function is called.
 
-**What I chose and why:**
-Using `tick_interval=0` allowed for less of a refactor within the functionality of `countdown`. Likewise, it allows for testing manually on the command line. Using a mock would not allow the same functionality for manual testing. 
-
-**What I'd do differently:**
+**What I'd Do Differently:**
+In hindsight, both approaches are reasonable. If `countdown` grew more complex and `tick_interval` started feeling like test-only contamination of the production API, I'd switch to mocking. For now, the parameter approach keeps things simple and flexible.
