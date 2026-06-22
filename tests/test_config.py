@@ -6,7 +6,7 @@ from focus.config import FocusConfig
 import focus.config as config_module
 from pathlib import Path
 import pytest
-from typing import Generator, Any 
+from typing import Generator
 
 def test_load_defaults() -> None:
     cfg = FocusConfig.load()
