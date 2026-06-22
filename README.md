@@ -83,7 +83,7 @@ focus stats
 focus stats --include-interrupted
 ```
 
-Shows current streak, total sessions, sessions completed today, and total focus time.
+Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in analysis. 
 
 ### View personal bests
 
@@ -93,6 +93,9 @@ focus personal-best --include-interrupted
 ```
 
 Shows longest streak, most focus sessions in a single day, and longest focus session.
+Includes a flag to also use interrupted sessions in analysis.
+
+
 
 ### View configuration
 
@@ -106,7 +109,7 @@ focus config
 focus reset
 ```
 
-Prompts for confirmation before deleting all saved session data.
+Prompts for confirmation before deleting all saved session data. Confirms delete before continuing. 
 
 ## Configuration
 
@@ -154,3 +157,8 @@ CI runs on Python 3.10, 3.11, and 3.12 via GitHub Actions.
 
 ## Future work 
 [ ] Add in notifications and sound 
+[ ] Add a TUI 
+[ ] Syncing to an external or backend service
+
+
+Interested in the technical decisions behind this project? See DESIGN.md.

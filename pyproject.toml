@@ -5,13 +5,13 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "focus-cli"
 verison = "0.1.0"
-description = "A pomodoro timer application for your terminal 
+description = "A pomodoro timer application for your terminal"
 readme = "README.md"
 requires-python =">=3.10"
 dependencies= [
     "click>=8.1",
     "rich>=13.0",
-    "tomli>=2.0; python_version < '3.11'",
+    "tomli>=2.0; python_version < '3.13'",
 ]
 
 [project.scripts]
@@ -35,6 +35,3 @@ strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-
-

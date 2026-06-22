@@ -5,7 +5,7 @@ Adds in functionality to run the timer and display logic together. Handles user 
 
 from __future__ import annotations
 from datetime import datetime
-from display import (
+from focus.display import (
     show_history_table, 
     show_start_banner, 
     show_complete_banner, 
@@ -23,8 +23,8 @@ from display import (
     continue_to_next_session,
     exit_multi_session
 )
-from timer import run_countdown, TimerResult
-from storage import (
+from focus.timer import run_countdown, TimerResult
+from focus.storage import (
     SessionRecord, 
     save_session, 
     get_sessions_last_n_days, 
@@ -40,7 +40,7 @@ from storage import (
 from rich.console import Console
 import click
 from pathlib import Path
-from config import FocusConfig
+from focus.config import FocusConfig
 
 @click.group()
 def focus():
@@ -70,7 +70,7 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
 
     timer_result = TimerResult(
         planned_duration=total_seconds,
-        actual_duration=elapsed,
+        actual_duration=round(elapsed),
         type=focus_or_break,
         start_time=start_time,
         end_time=end_time,
