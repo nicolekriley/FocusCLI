@@ -6,8 +6,9 @@ from focus.config import FocusConfig
 import focus.config as config_module
 from pathlib import Path
 import pytest
+from typing import Generator, Any 
 
-def test_load_defaults():
+def test_load_defaults() -> None:
     cfg = FocusConfig.load()
     assert cfg.focus_minutes == 25
     assert cfg.break_minutes == 5
@@ -16,7 +17,7 @@ def test_load_defaults():
     assert cfg.long_focus_minutes == 45
     assert str(cfg.data_path) == str(Path.home() / ".focus_data.json")
 
-def test_show():
+def test_show() -> None:
     cfg = FocusConfig()
     display = cfg.show()
     assert display["Focus duration"] == "25 min"
@@ -26,7 +27,7 @@ def test_show():
     assert display["Long focus duration"] == "45 min"
 
 @pytest.fixture(autouse=False)
-def override_config_path(tmp_path):
+def override_config_path(tmp_path: Path) -> Generator[Path, None, None]:
     '''
     Fixture to override CONFIG_FILE_PATH for testing load from file without affecting real config.
     '''
@@ -36,7 +37,7 @@ def override_config_path(tmp_path):
     yield config_file
     config_module.CONFIG_FILE_PATH = original_path
 
-def test_load_from_file(override_config_path):
+def test_load_from_file(override_config_path: Path) -> None:
     config_content = """
     [focus]
     focus_minutes = 30

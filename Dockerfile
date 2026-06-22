@@ -4,7 +4,7 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY focus/ focus/ 
 
-RUN pip install -e .
+RUN pip install -e ".[dev]"
 
 ENTRYPOINT ["focus"]
 CMD ["--help"]

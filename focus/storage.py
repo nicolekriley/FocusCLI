@@ -8,7 +8,8 @@ from __future__ import annotations
 import json 
 from pathlib import Path
 from datetime import datetime, timedelta, date
-from typing import TypedDict, Required
+from typing import TypedDict, cast
+from typing_extensions import Required
 
 class SessionRecord(TypedDict, total=False):
     id: str # unique identifier for the session, e.g. a UUID
@@ -25,7 +26,7 @@ def _load_all(data_path: Path) -> list[SessionRecord]:
     if not data_path.exists():
         return []
     with open(data_path) as f:
-        return json.load(f)
+        return cast(list[SessionRecord], json.load(f))
 
 def get_all_sessions(data_path: Path) -> list[SessionRecord]:
     return _load_all(data_path)

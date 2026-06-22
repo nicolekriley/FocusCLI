@@ -43,7 +43,7 @@ from pathlib import Path
 from focus.config import FocusConfig
 
 @click.group()
-def focus():
+def focus() -> None:
     pass
 
 
@@ -57,7 +57,7 @@ def trigger_session(console: Console, duration:int, task:str, data_path: Path,  
     
     with make_progress_bar(console) as progress:
         task_progress = progress.add_task(f"{focus_or_break.capitalize()} Time Remaining:", total=total_seconds)
-        def on_tick(elapsed, total) -> None:
+        def on_tick(elapsed: float, total: float) -> None:
             progress.update(task_progress, completed=elapsed)
 
         elapsed, status = run_countdown(total_seconds, on_tick) 
@@ -120,7 +120,7 @@ def trigger_session_and_break(duration: int, task: str, break_duration: int) -> 
 @click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
 @click.option("--number-of-cycles", "-c", type=int, default=2, help="Number of focus/break cycles to run (default: 2)")
-def multi_start(number_of_cycles: int, duration: int, task: str, break_duration: int, no_break: bool):
+def multi_start(number_of_cycles: int, duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
     Start multiple focus sessions with optional breaks. Accepts duration in minutes, task description, break duration, and number of cycles.
     Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the last long break, prompts for a longer break.
@@ -153,7 +153,7 @@ def multi_start(number_of_cycles: int, duration: int, task: str, break_duration:
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
 @click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
-def start(duration: int, task: str, break_duration: int, no_break: bool):
+def start(duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
     Start a focus session with an optional break. Accepts duration in minutes, task description, and break duration. 
     Prompts for reflection after each session and saves results to storage. If the user has completed enough focus sessions today since the last long break, prompts for a longer break.
@@ -174,7 +174,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool):
 
 @focus.command()
 @click.option("--days", "-d", default=7, help="Number of days of history to show")
-def history(days):
+def history(days: int) -> None:
     '''
     Show a table of focus sessions from the last N days. Prints no sessions found if there are none.
     Table contains task, session type, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
@@ -189,7 +189,7 @@ def history(days):
 
 @focus.command()
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
-def personal_best(include_interrupted):
+def personal_best(include_interrupted: bool) -> None:
     '''
     Show personal best stats like longest streak, most sessions in a day, longest focus time. Prints no sessions found if there are none.\n
     Args: \n
@@ -205,7 +205,7 @@ def personal_best(include_interrupted):
 
 @focus.command()
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
-def stats(include_interrupted):
+def stats(include_interrupted: bool) -> None:
     '''
     Show current streak, total sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
     Args: \n
@@ -223,7 +223,7 @@ def stats(include_interrupted):
 
 
 @focus.command()
-def config():
+def config() -> None:
     '''
     Show current configuration settings.
     '''
@@ -233,7 +233,7 @@ def config():
 
 
 @focus.command()
-def reset():
+def reset() -> None:
     '''
     Reset all session data. Prints no sessions found if there are none. Prompts for confirmation before deleting data file.
     '''
