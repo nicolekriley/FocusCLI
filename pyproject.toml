@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-focus = "focus.cli:cli"
+focus = "focus.cli:focus"
 
 [project.optional-dependencies]
 dev =  [
