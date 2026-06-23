@@ -25,11 +25,13 @@ def test_trigger_session_complete(tmp_path) -> None:
     assert session["session_type"] == "focus"
     assert session["task"] == "Test Task"
     assert session["status"] == "completed"
+    assert session["planned_duration"] == 1
+    assert session["actual_duration"] == 1
 
 
 def test_trigger_session_interrupted(tmp_path) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        return duration, "interrupted"
+        return 0, "interrupted"
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
@@ -45,6 +47,8 @@ def test_trigger_session_interrupted(tmp_path) -> None:
     assert session["session_type"] == "focus"
     assert session["task"] == "Test Task"
     assert session["status"] == "interrupted"
+    assert session["planned_duration"] == 1
+    assert session["actual_duration"] == 0
 
 
 def test_trigger_session_and_break_complete(tmp_path) -> None: 
@@ -65,16 +69,20 @@ def test_trigger_session_and_break_complete(tmp_path) -> None:
     assert session["session_type"] == "focus"
     assert session["task"] == "Test Task"
     assert session["status"] == "completed"
+    assert session["planned_duration"] == 1
+    assert session["actual_duration"] == 1
 
     session_break = records[1]
     assert session_break["session_type"] == "break"
-    assert session_break["task"] == "Test Task  - Break"
+    assert session_break["task"] == "Test Task - Break"
     assert session_break["status"] == "completed"
+    assert session_break["planned_duration"] == 1
+    assert session_break["actual_duration"] == 1
 
 
 def test_trigger_session_and_break_focus_interrupted(tmp_path) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        return duration, "interrupted"
+        return 0, "interrupted"
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
@@ -90,6 +98,8 @@ def test_trigger_session_and_break_focus_interrupted(tmp_path) -> None:
     assert session["session_type"] == "focus"
     assert session["task"] == "Test Task"
     assert session["status"] == "interrupted"
+    assert session["planned_duration"] == 1
+    assert session["actual_duration"] == 0
 
 
 def test_trigger_session_and_break_break_interrupted(tmp_path) -> None: 
@@ -97,12 +107,12 @@ def test_trigger_session_and_break_break_interrupted(tmp_path) -> None:
         if duration == 1:
             return duration, "completed"  # Focus session completes
         else:
-            return duration, "interrupted"  # Break session is interrupted
+            return 0, "interrupted"  # Break session is interrupted
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
 
-    status = trigger_session_and_break(1, "Test Task", 1, _countdown_function=fake_countdown, _reflection_function=fake_reflection)
+    status = trigger_session_and_break(1, "Test Task", 2, _countdown_function=fake_countdown, _reflection_function=fake_reflection)
     assert status == "interrupted"
 
     # Check that the session records were saved correctly
@@ -113,11 +123,15 @@ def test_trigger_session_and_break_break_interrupted(tmp_path) -> None:
     assert focus_session["session_type"] == "focus"
     assert focus_session["task"] == "Test Task"
     assert focus_session["status"] == "completed"
+    assert focus_session["planned_duration"] == 1
+    assert focus_session["actual_duration"] == 1
 
     break_session = records[1]
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task  - Break"
     assert break_session["status"] == "interrupted"
+    assert break_session["planned_duration"] == 2
+    assert break_session["actual_duration"] == 0
 
 
 def test_run_session_loop_complete(tmp_path) -> None:
@@ -144,15 +158,19 @@ def test_run_session_loop_complete(tmp_path) -> None:
         break_session = records[i * 2 + 1]
 
         assert focus_session["session_type"] == "focus"
-        assert focus_session["task"] == "Test Task"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
         assert focus_session["status"] == "completed"
+        assert focus_session["planned_duration"] == 1
+        assert focus_session["actual_duration"] == 1
 
         assert break_session["session_type"] == "break"
-        assert break_session["task"] == "Test Task  - Break"
+        assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
         assert break_session["status"] == "completed"
+        assert break_session["planned_duration"] == 1
+        assert break_session["actual_duration"] == 1
 
 
-def run_session_loop_completed_no_break(tmp_path) -> None:
+def test_run_session_loop_completed_no_break(tmp_path) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -175,8 +193,38 @@ def run_session_loop_completed_no_break(tmp_path) -> None:
         focus_session = records[i]
 
         assert focus_session["session_type"] == "focus"
-        assert focus_session["task"] == "Test Task"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
         assert focus_session["status"] == "completed"
+        assert focus_session["planned_duration"] == 1
+        assert focus_session["actual_duration"] == 1
+
+
+def test_run_session_loop_interrupted_no_break(tmp_path) -> None:
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        return 0, "interrupted"
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+    
+    def fake_continue_to_next_session() -> bool:
+        return True  # Always continue for testing
+    
+    def fake_exit_multi_session(console: Console) -> None:
+        pass  # Do nothing for testing
+
+    run_session_loop(2, 1, "Test Task", 1, True, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _exit_multi_function=fake_exit_multi_session)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(tmp_path / ".focus_data.json")
+    assert len(records) == 1  # the first session is interrupted, so only one record should be saved
+
+    focus_session = records[0]
+
+    assert focus_session["session_type"] == "focus"
+    assert focus_session["task"] == "Test Task - Cycle 1"
+    assert focus_session["status"] == "interrupted"
+    assert focus_session["planned_duration"] == 1
+    assert focus_session["actual_duration"] == 0
 
 
 def test_run_session_loop_not_continue(tmp_path) -> None:
@@ -202,17 +250,21 @@ def test_run_session_loop_not_continue(tmp_path) -> None:
     break_session = records[1]
 
     assert focus_session["session_type"] == "focus"
-    assert focus_session["task"] == "Test Task"
+    assert focus_session["task"] == "Test Task - Cycle 1"
     assert focus_session["status"] == "completed"
+    assert focus_session["planned_duration"] == 1
+    assert focus_session["actual_duration"] == 1
 
     assert break_session["session_type"] == "break"
-    assert break_session["task"] == "Test Task  - Break"
+    assert break_session["task"] == "Test Task - Cycle 1 - Break"
     assert break_session["status"] == "completed"
+    assert break_session["planned_duration"] == 1
+    assert break_session["actual_duration"] == 1
 
 
 def test_run_session_loop_focus_interrupted(tmp_path) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        return duration, "interrupted"
+        return 0, "interrupted"
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
@@ -231,7 +283,9 @@ def test_run_session_loop_focus_interrupted(tmp_path) -> None:
 
     focus_session = records[0]
     assert focus_session["session_type"] == "focus"
-    assert focus_session["task"] == "Test Task"
+    assert focus_session["planned_duration"] == 1
+    assert focus_session["actual_duration"] == 0
+    assert focus_session["task"] == "Test Task - Cycle 1"
     assert focus_session["status"] == "interrupted"
 
 
@@ -240,7 +294,7 @@ def test_run_session_loop_break_interrupted(tmp_path) -> None:
         if duration == 1:
             return duration, "completed"  # Focus session completes
         else:
-            return duration, "interrupted"  # Break session is interrupted
+            return 0, "interrupted"  # Break session is interrupted
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
@@ -251,7 +305,7 @@ def test_run_session_loop_break_interrupted(tmp_path) -> None:
     def fake_continue() -> bool:
         return True  # Always continue for testing
 
-    run_session_loop(2, 1, "Test Task", 1, False, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _exit_multi_function=fake_exit_multi, _continue_function=fake_continue)
+    run_session_loop(2, 1, "Test Task", 2, False, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _exit_multi_function=fake_exit_multi, _continue_function=fake_continue)
 
     # Check that the session records were saved correctly
     records = get_all_sessions(tmp_path / ".focus_data.json")
@@ -262,10 +316,14 @@ def test_run_session_loop_break_interrupted(tmp_path) -> None:
 
     assert focus_session_1["session_type"] == "focus"
     assert focus_session_1["task"] == "Test Task - Cycle 1"
+    assert focus_session_1["planned_duration"] == 1
+    assert focus_session_1["actual_duration"] == 1
     assert focus_session_1["status"] == "completed"
 
     assert break_session_1["session_type"] == "break"
     assert break_session_1["task"] == "Test Task - Cycle 1 - Break" 
+    assert break_session_1["planned_duration"] == 2
+    assert break_session_1["actual_duration"] == 0
     assert break_session_1["status"] == "interrupted"
 
 
@@ -293,4 +351,56 @@ def test_run_session_loop_no_break(tmp_path) -> None:
 
         assert focus_session["session_type"] == "focus"
         assert focus_session["task"] == "Test Task" + f" - Cycle {i+1}"
+        assert focus_session["planned_duration"] == 1
+        assert focus_session["actual_duration"] == 1
         assert focus_session["status"] == "completed"
+
+
+def test_run_session_loop_focus_interrupt_second_focus(tmp_path):
+
+    #contdown will compete 
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        fake_countdown.counter += 1
+        if fake_countdown.counter < 3:
+            return duration, "completed"  # session completes
+        else: 
+            return 0, "interrupted"  # session is interrupted
+        
+    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+    
+    def fake_exit_multi(console: Console) -> None:
+        pass  # Do nothing for testing
+
+    def fake_continue() -> bool:
+        return True  # Always continue for testing
+
+    run_session_loop(2, 1, "Test Task", 2, False, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _exit_multi_function=fake_exit_multi, _continue_function=fake_continue)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(tmp_path / ".focus_data.json")
+    assert len(records) == 3  # Two focus sessions and one break session
+
+    focus_session_1 = records[0]
+    break_session_1 = records[1]
+    focus_session_2 = records[2]
+
+    assert focus_session_1["session_type"] == "focus"
+    assert focus_session_1["task"] == "Test Task - Cycle 1"
+    assert focus_session_1["planned_duration"] == 1
+    assert focus_session_1["actual_duration"] == 1
+    assert focus_session_1["status"] == "completed"
+
+    assert break_session_1["session_type"] == "break"
+    assert break_session_1["task"] == "Test Task - Cycle 1 - Break" 
+    assert break_session_1["planned_duration"] == 2
+    assert break_session_1["actual_duration"] == 2
+    assert break_session_1["status"] == "completed"
+
+    assert focus_session_2["session_type"] == "focus"
+    assert focus_session_2["task"] == "Test Task - Cycle 2"
+    assert focus_session_2["planned_duration"] == 1
+    assert focus_session_2["actual_duration"] == 0
+    assert focus_session_2["status"] == "interrupted"
