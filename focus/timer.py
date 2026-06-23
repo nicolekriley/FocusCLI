@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import time 
 from datetime import datetime 
-from typing import Tuple, Callable
+from typing import Callable
 from dataclasses import dataclass   
 
 
@@ -41,7 +41,7 @@ def run_countdown(
     Returns (seconds_elapsed, status) where status is 'completed' or 'interrupted'.
     Raises KeyboardInterrupt internally and returns 'interrupted' — caller never crashes.
     """
-    elapsed = 0
+    elapsed = 0.0
     try:
         while elapsed < total_seconds:
             on_tick(elapsed, total_seconds)

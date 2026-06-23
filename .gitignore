@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .vscode/
+focus_cli.egg-info/

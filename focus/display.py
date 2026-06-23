@@ -10,7 +10,7 @@ from rich.emoji import Emoji
 from rich.console import Console
 from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.table import Table
-from storage import SessionRecord
+from focus.storage import SessionRecord
 from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.align import Align
