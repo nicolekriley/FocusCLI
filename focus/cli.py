@@ -244,9 +244,7 @@ def reset() -> None:
         return
     confirm = should_reset()
     if confirm:
-        if focus_session_data.data_path.exists():
-            open(focus_session_data.data_path, 'w').close()  # Clear the file contents
-            focus_session_data.data_path.unlink()  # Delete the file
+        focus_session_data.data_path.unlink()  # Delete the file
         reset_successful(console)
     else:
         reset_cancelled(console)
