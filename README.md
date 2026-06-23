@@ -146,6 +146,8 @@ Run tests:
 pytest --cov=focus --cov-report=term-missing
 ```
 
+CLI commands are tested via their underlying helper functions rather than Click's test runner.
+
 Lint and type check:
 
 ```bash
