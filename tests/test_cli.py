@@ -1,15 +1,27 @@
 '''
 Test functionality for helper functions in cli.py
 '''
-from zipfile import Path
-
 from focus.cli import OnTickFn, run_session_loop, trigger_session_and_break, trigger_session
 from focus.storage import get_all_sessions
+from focus.config import FocusConfig
 from rich.console import Console
 import io
 from pathlib import Path
+import pytest 
 
-def test_trigger_session_complete(tmp_path) -> None:
+@pytest.fixture
+def cfg(tmp_path: Path) -> FocusConfig:
+    return FocusConfig(
+        focus_minutes=1,
+        break_minutes=2,
+        long_break_minutes=5,
+        long_focus_minutes=3,
+        cycles=2,
+        data_path= tmp_path / "test_data.json",
+    )
+
+
+def test_trigger_session_complete(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
     
@@ -18,11 +30,11 @@ def test_trigger_session_complete(tmp_path) -> None:
     
     console = Console(file=io.StringIO(), force_terminal=False)
     
-    status = trigger_session(console, 1, "Test Task", tmp_path / ".focus_data.json", "focus", _countdown_function=fake_countdown, _reflection_function=fake_reflection)
+    status = trigger_session(console, 1, "Test Task", cfg.data_path, "focus", _countdown_function=fake_countdown, _reflection_function=fake_reflection)
     assert status == "completed"
 
     # Check that the session record was saved correctly
-    records = get_all_sessions(tmp_path / ".focus_data.json")
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 1
 
     session = records[0]
@@ -35,7 +47,7 @@ def test_trigger_session_complete(tmp_path) -> None:
         assert session["reflection"] == "test reflection"
 
 
-def test_trigger_session_interrupted(tmp_path) -> None:
+def test_trigger_session_interrupted(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
 
@@ -44,11 +56,11 @@ def test_trigger_session_interrupted(tmp_path) -> None:
     
     console = Console(file=io.StringIO(), force_terminal=False)
     
-    status = trigger_session(console, 1, "Test Task", tmp_path / ".focus_data.json", "focus", _countdown_function=fake_countdown, _reflection_function=fake_reflection)
+    status = trigger_session(console, 1, "Test Task", cfg.data_path, "focus", _countdown_function=fake_countdown, _reflection_function=fake_reflection)
     assert status == "interrupted"
 
     # Check that the session record was saved correctly
-    records = get_all_sessions(tmp_path / ".focus_data.json")
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 1
 
     session = records[0]
@@ -61,24 +73,25 @@ def test_trigger_session_interrupted(tmp_path) -> None:
         assert session["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_complete(tmp_path) -> None: 
+def test_trigger_session_and_break_complete(cfg) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
 
     console = Console(file=io.StringIO(), force_terminal=False)
-    status = trigger_session_and_break(console, 1, "Test Task", 1, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    status = trigger_session_and_break(console, 1, "Test Task", 1, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
     assert status == "completed"
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2 
 
     session = records[0]
@@ -100,23 +113,25 @@ def test_trigger_session_and_break_complete(tmp_path) -> None:
         assert session_break["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_focus_interrupted(tmp_path) -> None: 
+def test_trigger_session_and_break_focus_interrupted(cfg) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
+    
     console = Console(file=io.StringIO(), force_terminal=False)
-    status = trigger_session_and_break(console, 1, "Test Task", 1, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    status = trigger_session_and_break(console, 1, "Test Task", 1, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
     assert status == "interrupted"
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 1 # should only save the focus session, not the break session
 
     session = records[0]
@@ -129,7 +144,7 @@ def test_trigger_session_and_break_focus_interrupted(tmp_path) -> None:
         assert session["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_break_interrupted(tmp_path) -> None: 
+def test_trigger_session_and_break_break_interrupted(cfg) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
@@ -139,16 +154,18 @@ def test_trigger_session_and_break_break_interrupted(tmp_path) -> None:
     def fake_reflection(console: Console) -> str:
         return "test reflection"
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
+
     console = Console(file=io.StringIO(), force_terminal=False)
-    status = trigger_session_and_break(console, 1, "Test Task", 2, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    status = trigger_session_and_break(console, 1, "Test Task", 2, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
     assert status == "interrupted"
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2  # Both focus and break sessions should be saved
 
     focus_session = records[0]
@@ -170,7 +187,87 @@ def test_trigger_session_and_break_break_interrupted(tmp_path) -> None:
         assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_complete(tmp_path) -> None:
+def trigger_session_and_break_with_long_break_notification_complete(cfg) -> None:
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        return duration, "completed"
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        return cfg.cycles  # For testing, always return default cycles to trigger a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    status = trigger_session_and_break(console, 1, "Test Task", 2, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fake_break_sessions_since_last_long_break)
+    assert status == "completed"
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.data_path)
+    assert len(records) == 2  # Both focus and break sessions should be saved
+
+    focus_session = records[0]
+    assert focus_session["session_type"] == "focus"
+    assert focus_session["task"] == "Test Task"
+    assert focus_session["status"] == "completed"
+    assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+    assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+    if "reflection" in focus_session:
+        assert focus_session["reflection"] == "test reflection"
+
+    break_session = records[1]
+    assert break_session["session_type"] == "break"
+    assert break_session["task"] == "Test Task - Break"
+    assert break_session["status"] == "completed"
+    assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+    assert break_session["actual_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+    if "reflection" in break_session:
+        assert break_session["reflection"] == "test reflection"
+
+
+def test_trigger_session_and_break_with_long_break_notification_focus_complete_break_interrupted(cfg) -> None:
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        if duration == 1.0 * 60: #Focus session duration in seconds
+            return duration, "completed"  # Focus session completes
+        else:
+            return 0, "interrupted"  # Break session is interrupted
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        return cfg.cycles  # For testing, always return 4 to trigger long break notification
+
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    status = trigger_session_and_break(console, 1, "Test Task", 2, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
+    assert status == "interrupted"
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.data_path)
+    assert len(records) == 2  # Both focus and break sessions should be saved
+
+    focus_session = records[0]
+    assert focus_session["session_type"] == "focus"
+    assert focus_session["task"] == "Test Task"
+    assert focus_session["status"] == "completed"
+    assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+    assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+    if "reflection" in focus_session:
+        assert focus_session["reflection"] == "test reflection"
+
+    break_session = records[1]
+    assert break_session["session_type"] == "break"
+    assert break_session["task"] == "Test Task - Break"
+    assert break_session["status"] == "interrupted"
+    assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+    assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break)
+    if "reflection" in break_session:
+        assert break_session["reflection"] == "test reflection"
+
+
+def test_run_session_loop_complete(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -180,16 +277,17 @@ def test_run_session_loop_complete(tmp_path) -> None:
     def fake_continue_to_next_session() -> bool:
         return True  # Always continue for testing
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json" 
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
 
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, False, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 4  # 2 focus sessions and 2 break sessions
 
     for i in range(2):
@@ -213,7 +311,7 @@ def test_run_session_loop_complete(tmp_path) -> None:
             assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_completed_no_break(tmp_path) -> None:
+def test_run_session_loop_completed_no_break(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -223,15 +321,17 @@ def test_run_session_loop_completed_no_break(tmp_path) -> None:
     def fake_continue_to_next_session() -> bool:
         return True  # Always continue for testing
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False  # For testing, always return False to simulate user declining a long break
+    
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, True, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, True, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2  # Only 2 focus sessions, no break sessions
 
     for i in range(2):
@@ -246,7 +346,7 @@ def test_run_session_loop_completed_no_break(tmp_path) -> None:
             assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_interrupted_no_break(tmp_path) -> None:
+def test_run_session_loop_interrupted_no_break(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
 
@@ -256,15 +356,14 @@ def test_run_session_loop_interrupted_no_break(tmp_path) -> None:
     def fake_continue_to_next_session() -> bool:
         return True  # Always continue for testing
 
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, True, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, True, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 1  # the first session is interrupted, so only one record should be saved
 
     focus_session = records[0]
@@ -278,7 +377,7 @@ def test_run_session_loop_interrupted_no_break(tmp_path) -> None:
         assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_not_continue(tmp_path) -> None:
+def test_run_session_loop_not_continue(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -288,15 +387,17 @@ def test_run_session_loop_not_continue(tmp_path) -> None:
     def fake_continue_to_next_session() -> bool:
         return False  # Stop after the first cycle for testing
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False  # For testing, always return False to simulate user declining a long break
+
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, False, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2  # Only the first focus and break sessions should be saved
 
     focus_session = records[0]
@@ -319,7 +420,7 @@ def test_run_session_loop_not_continue(tmp_path) -> None:
         assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_focus_interrupted(tmp_path) -> None:
+def test_run_session_loop_focus_interrupted(cfg) -> None:
     
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
@@ -330,15 +431,17 @@ def test_run_session_loop_focus_interrupted(tmp_path) -> None:
     def fake_continue() -> bool:
         return True  # Always continue for testing
 
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
     
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False # For testing, always return False to simulate user declining a long break
+    
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, False, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 1  # Only the first focus session should be saved
 
     focus_session = records[0]
@@ -351,7 +454,7 @@ def test_run_session_loop_focus_interrupted(tmp_path) -> None:
         assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_break_interrupted(tmp_path) -> None:
+def test_run_session_loop_break_interrupted(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
@@ -364,15 +467,14 @@ def test_run_session_loop_break_interrupted(tmp_path) -> None:
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 2, False, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2  # One focus session and one break session
 
     focus_session_1 = records[0]
@@ -395,7 +497,7 @@ def test_run_session_loop_break_interrupted(tmp_path) -> None:
         assert break_session_1["reflection"] == "test reflection"
 
 
-def test_run_session_loop_no_break(tmp_path) -> None:
+def test_run_session_loop_no_break(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -405,16 +507,18 @@ def test_run_session_loop_no_break(tmp_path) -> None:
     def fake_continue_to_next_session() -> bool:
         return True  # Always continue for testing
 
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
     
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False  # For testing, always return False to simulate user declining a long break
+
 
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 1, True, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 1, True, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 2  # Only 2 focus sessions, no break sessions
 
     for i in range(2):
@@ -429,7 +533,7 @@ def test_run_session_loop_no_break(tmp_path) -> None:
             assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_focus_interrupt_second_focus(tmp_path):
+def test_run_session_loop_focus_interrupt_second_focus(cfg):
 
     # countdown will show as interrupted on the third call, which is the second focus session
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
@@ -447,16 +551,17 @@ def test_run_session_loop_focus_interrupt_second_focus(tmp_path):
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fakeBreakSessionsSinceLastLongBreak(data_path: Path, long_break_minutes: int) -> int:
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
-    saveLocation = tmp_path / ".focus_data.json"
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False  # For testing, always return False to simulate user declining a long break
 
     console = Console(file=io.StringIO(), force_terminal=False)
-    run_session_loop(console, 2, 1, "Test Task", 2, False, saveLocation, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fakeBreakSessionsSinceLastLongBreak)
+    run_session_loop(console, 2, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(saveLocation)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 3  # Two focus sessions and one break session
 
     focus_session_1 = records[0]
@@ -486,3 +591,228 @@ def test_run_session_loop_focus_interrupt_second_focus(tmp_path):
     assert focus_session_2["status"] == "interrupted"
     if "reflection" in focus_session_2:
         assert focus_session_2["reflection"] == "test reflection"
+
+
+def test_run_session_loop_long_break_notification_accept(cfg):
+
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        return duration, "completed"  # All sessions complete
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+
+    def fake_continue() -> bool:
+        return True  # Always continue for testing
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        fake_break_sessions_since_last_long_break.counter += 1
+        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
+            return 0
+        return cfg.cycles  # For testing , return DEFAULT_CYCLES to trigger long break notification on the first call
+
+    fake_break_sessions_since_last_long_break.counter = 0
+
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return True  #  return True to simulate user accepting a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    run_session_loop(console, 5, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.data_path)
+    assert len(records) == 10  # Five focus sessions and five break sessions
+
+    for i in range(5):
+        focus_session = records[i * 2]
+        break_session = records[i * 2 + 1]
+
+        assert focus_session["session_type"] == "focus"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
+        assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["status"] == "completed"
+        if "reflection" in focus_session:
+            assert focus_session["reflection"] == "test reflection"
+
+        assert break_session["session_type"] == "break"
+        assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
+        if (i + 1) % cfg.cycles != 0:
+            assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
+            assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
+        else:
+            assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+            assert break_session["actual_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+
+def test_run_session_loop_long_break_notification_decline(cfg:FocusConfig):
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        return duration, "completed"  # All sessions complete
+
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+
+    def fake_continue() -> bool:
+        return True  # Always continue for testing
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        fake_break_sessions_since_last_long_break.counter += 1
+        if fake_break_sessions_since_last_long_break.counter < cfg.cycles:
+            return 0
+        return cfg.cycles  # For testing return cfg.cycles once cfg.cycles focus sessions have happened
+
+    fake_break_sessions_since_last_long_break.counter = 0
+
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False  #  return False to simulate user declining a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    run_session_loop(console, 5, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.data_path)
+    assert len(records) == 10  # Five focus sessions and five break sessions
+
+    for i in range(5):
+        focus_session = records[i * 2]
+        break_session = records[i * 2 + 1]
+
+        assert focus_session["session_type"] == "focus"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
+        assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["status"] == "completed"
+        if "reflection" in focus_session:
+            assert focus_session["reflection"] == "test reflection"
+
+        assert break_session["session_type"] == "break"
+        assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
+        assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
+        assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
+        assert break_session["status"] == "completed"
+        if "reflection" in break_session:
+            assert break_session["reflection"] == "test reflection"
+
+
+def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: FocusConfig):
+
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        fake_countdown.counter += 1
+        if duration == 1.0 * 60: #Focus session duration in seconds
+            return duration, "completed"  # Focus session completes
+        elif duration == cfg.long_break_minutes * 60:  # long break duration in seconds
+            return 0, "interrupted"  # Long break session is interrupted
+        else: 
+            return duration, "completed"  # session completes
+
+    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+
+    def fake_continue() -> bool:
+        return True  # Always continue for testing
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        fake_break_sessions_since_last_long_break.counter += 1
+        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
+            return 0
+        return cfg.cycles # For testing , return cfg.cycles when counter is divisible by cfg.cycles to trigger long break notification
+
+    fake_break_sessions_since_last_long_break.counter = 0
+
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return True  #  return True to simulate user accepting a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    run_session_loop(console, 5, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.data_path)
+    assert len(records) == 8  # Four focus sessions and four break sessions as 4th long break is interrupted
+
+    for i in range(4):
+        focus_session = records[i * 2]
+        break_session = records[i * 2 + 1]
+
+        assert focus_session["session_type"] == "focus"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
+        assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["status"] == "completed"
+        if "reflection" in focus_session:
+            assert focus_session["reflection"] == "test reflection"
+
+        assert break_session["session_type"] == "break"
+        assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
+        if (i + 1) % cfg.cycles != 0:
+            assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
+            assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
+            assert break_session["status"] == "completed"
+        else:
+            assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
+            assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break)
+            assert break_session["status"] == "interrupted"
+
+
+def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg: FocusConfig):
+    
+    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+        fake_countdown.counter += 1
+        if duration == 1.0 * 60: #Focus session duration in seconds
+            return duration, "completed"  # Focus session completes
+        elif duration == 15 * 60:  # long break duration in seconds
+            return 0, "interrupted"  # Long break session is interrupted
+        else: 
+            return duration, "completed"  # session completes
+    
+    
+    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+    def fake_reflection(console: Console) -> str:
+        return "test reflection"
+
+    def fake_continue() -> bool:
+        return True  # Always continue for testing
+    
+    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
+        fake_break_sessions_since_last_long_break.counter += 1
+        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
+            return 0
+        return cfg.cycles  # For testing , return cfg.cycles when counter is divisible by cfg.cycles to trigger long break notification
+
+    fake_break_sessions_since_last_long_break.counter = 0
+
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False #  return False to simulate user rejecting a long break
+
+    console = Console(file=io.StringIO(), force_terminal=False)
+    run_session_loop(console, 5, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
+
+    # Check that the session records were saved correctly
+    records = get_all_sessions(cfg.cycles)
+    assert len(records) == 8  # Four focus sessions and four break sessions as 4th long break is interrupted
+
+    for i in range(4):
+        focus_session = records[i * 2]
+        break_session = records[i * 2 + 1]
+
+        assert focus_session["session_type"] == "focus"
+        assert focus_session["task"] == f"Test Task - Cycle {i+1}"
+        assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
+        assert focus_session["status"] == "completed"
+        if "reflection" in focus_session:
+            assert focus_session["reflection"] == "test reflection"
+
+        assert break_session["session_type"] == "break"
+        assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
+        if (i + 1) % cfg.cyles != 0:
+            assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
+            assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
+            assert break_session["status"] == "completed"
+        else:
+            assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds (long break rejected)
+            assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break rejected)
+            assert break_session["status"] == "interrupted"
+
+
+        
+    
+
