@@ -73,7 +73,7 @@ def test_trigger_session_interrupted(cfg: FocusConfig) -> None:
         assert session["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_complete(cfg) -> None: 
+def test_trigger_session_and_break_complete(cfg: FocusConfig) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -113,7 +113,7 @@ def test_trigger_session_and_break_complete(cfg) -> None:
         assert session_break["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_focus_interrupted(cfg) -> None: 
+def test_trigger_session_and_break_focus_interrupted(cfg: FocusConfig) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
 
@@ -144,7 +144,7 @@ def test_trigger_session_and_break_focus_interrupted(cfg) -> None:
         assert session["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_break_interrupted(cfg) -> None: 
+def test_trigger_session_and_break_break_interrupted(cfg: FocusConfig) -> None: 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
@@ -187,7 +187,7 @@ def test_trigger_session_and_break_break_interrupted(cfg) -> None:
         assert break_session["reflection"] == "test reflection"
 
 
-def trigger_session_and_break_with_long_break_notification_complete(cfg) -> None:
+def trigger_session_and_break_with_long_break_notification_accept_complete(cfg) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -218,13 +218,13 @@ def trigger_session_and_break_with_long_break_notification_complete(cfg) -> None
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task - Break"
     assert break_session["status"] == "completed"
-    assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
-    assert break_session["actual_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+    assert break_session["planned_duration"] == cfg.long_break * 60 # Convert minutes to seconds (long break)
+    assert break_session["actual_duration"] == cfg.long_break * 60 # Convert minutes to seconds (long break)
     if "reflection" in break_session:
         assert break_session["reflection"] == "test reflection"
 
 
-def test_trigger_session_and_break_with_long_break_notification_focus_complete_break_interrupted(cfg) -> None:
+def test_trigger_session_and_break_with_long_break_notification_decline_focus_complete_break_interrupted(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
@@ -261,13 +261,13 @@ def test_trigger_session_and_break_with_long_break_notification_focus_complete_b
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task - Break"
     assert break_session["status"] == "interrupted"
-    assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+    assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
     assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break)
     if "reflection" in break_session:
         assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_complete(cfg) -> None:
+def test_run_session_loop_complete(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -311,7 +311,7 @@ def test_run_session_loop_complete(cfg) -> None:
             assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_completed_no_break(cfg) -> None:
+def test_run_session_loop_completed_no_break(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -346,7 +346,7 @@ def test_run_session_loop_completed_no_break(cfg) -> None:
             assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_interrupted_no_break(cfg) -> None:
+def test_run_session_loop_interrupted_no_break(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
 
@@ -358,6 +358,9 @@ def test_run_session_loop_interrupted_no_break(cfg) -> None:
 
     def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
+    
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_duration: int) -> bool:
+        return False 
 
     console = Console(file=io.StringIO(), force_terminal=False)
     run_session_loop(console, 2, 1, "Test Task", 1, True, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue_to_next_session, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
@@ -377,7 +380,7 @@ def test_run_session_loop_interrupted_no_break(cfg) -> None:
         assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_not_continue(cfg) -> None:
+def test_run_session_loop_not_continue(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -420,7 +423,7 @@ def test_run_session_loop_not_continue(cfg) -> None:
         assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_focus_interrupted(cfg) -> None:
+def test_run_session_loop_focus_interrupted(cfg: FocusConfig) -> None:
     
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return 0, "interrupted"
@@ -454,7 +457,7 @@ def test_run_session_loop_focus_interrupted(cfg) -> None:
         assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_break_interrupted(cfg) -> None:
+def test_run_session_loop_break_interrupted(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
@@ -470,6 +473,9 @@ def test_run_session_loop_break_interrupted(cfg) -> None:
     def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
         return 0  # For testing, always return 0 to avoid triggering long break notification
 
+    def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
+        return False 
+    
     console = Console(file=io.StringIO(), force_terminal=False)
     run_session_loop(console, 2, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
@@ -497,7 +503,7 @@ def test_run_session_loop_break_interrupted(cfg) -> None:
         assert break_session_1["reflection"] == "test reflection"
 
 
-def test_run_session_loop_no_break(cfg) -> None:
+def test_run_session_loop_no_break(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -533,7 +539,7 @@ def test_run_session_loop_no_break(cfg) -> None:
             assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_focus_interrupt_second_focus(cfg):
+def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig):
 
     # countdown will show as interrupted on the third call, which is the second focus session
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
@@ -593,7 +599,7 @@ def test_run_session_loop_focus_interrupt_second_focus(cfg):
         assert focus_session_2["reflection"] == "test reflection"
 
 
-def test_run_session_loop_long_break_notification_accept(cfg):
+def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig):
 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"  # All sessions complete
@@ -640,10 +646,10 @@ def test_run_session_loop_long_break_notification_accept(cfg):
             assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
             assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
         else:
-            assert break_session["planned_duration"] == 15 * 60 # Convert minutes to seconds (long break)
-            assert break_session["actual_duration"] == 15 * 60 # Convert minutes to seconds (long break)
+            assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
+            assert break_session["actual_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
 
-def test_run_session_loop_long_break_notification_decline(cfg:FocusConfig):
+def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig):
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"  # All sessions complete
 
@@ -758,7 +764,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
         fake_countdown.counter += 1
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
-        elif duration == 15 * 60:  # long break duration in seconds
+        elif duration == cfg.long_break_minutes * 60:  # long break duration in seconds
             return 0, "interrupted"  # Long break session is interrupted
         else: 
             return duration, "completed"  # session completes
@@ -786,7 +792,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
     run_session_loop(console, 5, 1, "Test Task", 2, False, cfg, _countdown_function=fake_countdown, _reflection_function=fake_reflection, _continue_function=fake_continue, _sessions_since_break_function=fake_break_sessions_since_last_long_break, _long_break_notification_function=fake_long_break_notification)
 
     # Check that the session records were saved correctly
-    records = get_all_sessions(cfg.cycles)
+    records = get_all_sessions(cfg.data_path)
     assert len(records) == 8  # Four focus sessions and four break sessions as 4th long break is interrupted
 
     for i in range(4):
@@ -803,7 +809,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
-        if (i + 1) % cfg.cyles != 0:
+        if (i + 1) % cfg.cycles != 0:
             assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
             assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
             assert break_session["status"] == "completed"
