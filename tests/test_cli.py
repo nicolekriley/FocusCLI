@@ -8,6 +8,7 @@ from rich.console import Console
 import io
 from pathlib import Path
 import pytest 
+from unittest.mock import Mock
 
 @pytest.fixture
 def cfg(tmp_path: Path) -> FocusConfig:
@@ -218,8 +219,8 @@ def trigger_session_and_break_with_long_break_notification_accept_complete(cfg: 
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task - Break"
     assert break_session["status"] == "completed"
-    assert break_session["planned_duration"] == cfg.long_break * 60 # Convert minutes to seconds (long break)
-    assert break_session["actual_duration"] == cfg.long_break * 60 # Convert minutes to seconds (long break)
+    assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
+    assert break_session["actual_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
     if "reflection" in break_session:
         assert break_session["reflection"] == "test reflection"
 
@@ -539,17 +540,13 @@ def test_run_session_loop_no_break(cfg: FocusConfig) -> None:
             assert focus_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig):
+def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig) -> None:
 
-    # countdown will show as interrupted on the third call, which is the second focus session
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        fake_countdown.counter += 1
-        if fake_countdown.counter < 3:
-            return duration, "completed"  # session completes
-        else: 
-            return 0, "interrupted"  # session is interrupted
-        
-    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+    fake_countdown = Mock(side_effect =[
+        (1.0 * 60, "completed"), # First focus session 
+        (2.0 * 60, "completed"), # First break session
+        (0, "interrupted") # interrupted on third break call. 
+    ])
 
     def fake_reflection(console: Console) -> str:
         return "test reflection"
@@ -599,7 +596,7 @@ def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig):
         assert focus_session_2["reflection"] == "test reflection"
 
 
-def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig):
+def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig) -> None:
 
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"  # All sessions complete
@@ -610,13 +607,12 @@ def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig):
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
-        fake_break_sessions_since_last_long_break.counter += 1
-        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
-            return 0
-        return cfg.cycles  # For testing , return DEFAULT_CYCLES to trigger long break notification on the first call
-
-    fake_break_sessions_since_last_long_break.counter = 0
+    def break_sessions_effect(data_Path: Path, long_break_minutes: int) -> int:
+        if fake_break_sessions_since_last_long_break.call_count % cfg.cycles != 0:
+            return 0 
+        return cfg.cycles # For testing return cfg.cycles once cfg.cycles focus sessions have happened
+    
+    fake_break_sessions_since_last_long_break = Mock(side_effect=break_sessions_effect)
 
     def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
         return True  #  return True to simulate user accepting a long break
@@ -649,7 +645,8 @@ def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig):
             assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
             assert break_session["actual_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
 
-def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig):
+
+def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"  # All sessions complete
 
@@ -659,13 +656,12 @@ def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig):
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
-        fake_break_sessions_since_last_long_break.counter += 1
-        if fake_break_sessions_since_last_long_break.counter < cfg.cycles:
-            return 0
-        return cfg.cycles  # For testing return cfg.cycles once cfg.cycles focus sessions have happened
-
-    fake_break_sessions_since_last_long_break.counter = 0
+    def break_sessions_effect(data_Path: Path, long_break_minutes: int) -> int:
+        if fake_break_sessions_since_last_long_break.call_count < cfg.cycles:
+            return 0 
+        return cfg.cycles # For testing return cfg.cycles once cfg.cycles focus sessions have happened
+    
+    fake_break_sessions_since_last_long_break = Mock(side_effect=break_sessions_effect)
 
     def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
         return False  #  return False to simulate user declining a long break
@@ -698,31 +694,28 @@ def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig):
             assert break_session["reflection"] == "test reflection"
 
 
-def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: FocusConfig):
+def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: FocusConfig) -> None:
 
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        fake_countdown.counter += 1
-        if duration == 1.0 * 60: #Focus session duration in seconds
-            return duration, "completed"  # Focus session completes
-        elif duration == cfg.long_break_minutes * 60:  # long break duration in seconds
-            return 0, "interrupted"  # Long break session is interrupted
-        else: 
-            return duration, "completed"  # session completes
+    fake_countdown = Mock(side_effect=[
+        (1.0 * 60, "completed"), # first focus session
+        (2.0 * 60, "completed"), #first break session
+        (1.0 * 60, "completed"),  #second focus session 
+        (0 * 60, "interrupted") #second break session (long break) that is interrupted
+    ])
 
-    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+
     def fake_reflection(console: Console) -> str:
         return "test reflection"
 
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
-        fake_break_sessions_since_last_long_break.counter += 1
-        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
+    def break_sessions_effect(data_path: Path, long_break_minutes: int) -> int:
+        if fake_break_sessions_since_last_long_break.call_count % cfg.cycles != 0:
             return 0
-        return cfg.cycles # For testing , return cfg.cycles when counter is divisible by cfg.cycles to trigger long break notification
+        return cfg.cycles # For testing , return cfg.cycles when call count is divisible by cfg.cycles to trigger long break notification
 
-    fake_break_sessions_since_last_long_break.counter = 0
+    fake_break_sessions_since_last_long_break = Mock(side_effect=break_sessions_effect)
 
     def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
         return True  #  return True to simulate user accepting a long break
@@ -758,32 +751,34 @@ def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: 
             assert break_session["status"] == "interrupted"
 
 
-def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg: FocusConfig):
+def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg: FocusConfig) -> None:
     
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
-        fake_countdown.counter += 1
-        if duration == 1.0 * 60: #Focus session duration in seconds
-            return duration, "completed"  # Focus session completes
-        elif fake_countdown.counter >= 8 and duration != 1.0 * 60:  # long break duration in seconds
-            return 0, "interrupted"  # Long break session is interrupted
-        else: 
-            return duration, "completed"  # session completes
-    
-    
-    fake_countdown.counter = 0  # Initialize a counter to track the number of calls
+    fake_countdown = Mock(side_effect=[
+        (1.0 * 60, "completed"),  # call 1: focus
+        (2.0 * 60, "completed"),  # call 2: short break
+        (1.0 * 60, "completed"),  # call 3: focus
+        (2.0 * 60, "completed"),  # call 4: short break
+        (1.0 * 60, "completed"),  # call 5: focus
+        (2.0 * 60, "completed"),  # call 6: short break
+        (1.0 * 60, "completed"),  # call 7: focus
+        (0, "interrupted"),       # call 8: long break interrupted
+    ])
+
     def fake_reflection(console: Console) -> str:
         return "test reflection"
 
     def fake_continue() -> bool:
         return True  # Always continue for testing
     
-    def fake_break_sessions_since_last_long_break(data_path: Path, long_break_minutes: int) -> int:
-        fake_break_sessions_since_last_long_break.counter += 1
-        if fake_break_sessions_since_last_long_break.counter % cfg.cycles != 0:
+    # fake_break_sessions: behavior depends on call number, so use a side_effect function
+    # Note: inside a side_effect function, mock.call_count has already been incremented
+    def break_sessions_effect(data_path: Path, long_break_minutes: int) -> int:
+        if fake_break_sessions_since_last_long_break.call_count % cfg.cycles != 0:
             return 0
-        return cfg.cycles  # For testing , return cfg.cycles when counter is divisible by cfg.cycles to trigger long break notification
+        return cfg.cycles
 
-    fake_break_sessions_since_last_long_break.counter = 0
+    fake_break_sessions_since_last_long_break = Mock(side_effect=break_sessions_effect)
+
 
     def fake_long_break_notification(console: Console, cycles: int, break_duration: int, long_break_minutes: int) -> bool:
         return False #  return False to simulate user rejecting a long break

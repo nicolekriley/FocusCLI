@@ -17,6 +17,7 @@ def test_load_defaults() -> None:
     assert cfg.long_focus_minutes == DEFAULT_LONG_FOCUS_MINUTES
     assert str(cfg.data_path) == str(Path.home() / ".focus_data.json")
 
+
 def test_show() -> None:
     cfg = FocusConfig()
     display = cfg.show()
@@ -26,7 +27,8 @@ def test_show() -> None:
     assert display["Long break duration"] == str(DEFAULT_LONG_BREAK_MINUTES) + " min"
     assert display["Long focus duration"] == str(DEFAULT_LONG_FOCUS_MINUTES) + " min"
 
-@pytest.fixture(autouse=False)
+
+@pytest.fixture(autouse=False) 
 def override_config_path(tmp_path: Path) -> Generator[Path, None, None]:
     '''
     Fixture to override CONFIG_FILE_PATH for testing load from file without affecting real config.
@@ -36,6 +38,7 @@ def override_config_path(tmp_path: Path) -> Generator[Path, None, None]:
     config_module.CONFIG_FILE_PATH = config_file
     yield config_file
     config_module.CONFIG_FILE_PATH = original_path
+
 
 def test_load_from_file(override_config_path: Path) -> None:
     config_content = """
