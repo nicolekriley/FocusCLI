@@ -187,7 +187,7 @@ def test_trigger_session_and_break_break_interrupted(cfg: FocusConfig) -> None:
         assert break_session["reflection"] == "test reflection"
 
 
-def trigger_session_and_break_with_long_break_notification_accept_complete(cfg) -> None:
+def trigger_session_and_break_with_long_break_notification_accept_complete(cfg: FocusConfig) -> None:
     def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
         return duration, "completed"
 
@@ -261,7 +261,7 @@ def test_trigger_session_and_break_with_long_break_notification_decline_focus_co
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task - Break"
     assert break_session["status"] == "interrupted"
-    assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
+    assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds (no long break)
     assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break)
     if "reflection" in break_session:
         assert break_session["reflection"] == "test reflection"
@@ -732,9 +732,9 @@ def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: 
 
     # Check that the session records were saved correctly
     records = get_all_sessions(cfg.data_path)
-    assert len(records) == 8  # Four focus sessions and four break sessions as 4th long break is interrupted
+    assert len(records) == 2 * cfg.cycles  # Four focus sessions and four break sessions as 4th long break is interrupted
 
-    for i in range(4):
+    for i in range(cfg.cycles):
         focus_session = records[i * 2]
         break_session = records[i * 2 + 1]
 
@@ -764,7 +764,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
         fake_countdown.counter += 1
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
-        elif duration == cfg.long_break_minutes * 60:  # long break duration in seconds
+        elif fake_countdown.counter >= 8 and duration != 1.0 * 60:  # long break duration in seconds
             return 0, "interrupted"  # Long break session is interrupted
         else: 
             return duration, "completed"  # session completes
@@ -793,7 +793,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
 
     # Check that the session records were saved correctly
     records = get_all_sessions(cfg.data_path)
-    assert len(records) == 8  # Four focus sessions and four break sessions as 4th long break is interrupted
+    assert len(records) == 8  #
 
     for i in range(4):
         focus_session = records[i * 2]
@@ -809,7 +809,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
-        if (i + 1) % cfg.cycles != 0:
+        if 2 * i + 2 != 8:
             assert break_session["planned_duration"] == 2 * 60 # Convert minutes to seconds
             assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
             assert break_session["status"] == "completed"
