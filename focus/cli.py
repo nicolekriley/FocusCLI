@@ -44,7 +44,7 @@ from pathlib import Path
 from typing import Callable, TypeAlias
 
 OnTickFn: TypeAlias = Callable[[float, float], None]
-CountdownFn: TypeAlias = Callable[[float, OnTickFn], tuple[float, str]]
+CountdownFn: TypeAlias = Callable[[float, OnTickFn, float], tuple[float, str]]
 ReflectionFn: TypeAlias = Callable[[Console], str]
 ContinueFn: TypeAlias = Callable[[], bool]
 SessionsSinceLastLongBreakFn: TypeAlias = Callable[[Path, int], int]
@@ -123,9 +123,9 @@ def trigger_session_and_break(console: Console,
                                 break_duration: int, 
                                 cfg: FocusConfig, #Added as a paramter for testing purposes
                                 _countdown_function: CountdownFn = run_countdown, #Injecting countdown function for testing purposes
-                                _reflection_function: ReflectionFn = prompt_reflection, #Injecting reflection function for testing purposes, 
-                                _sessions_since_break_function: SessionsSinceLastLongBreakFn = get_number_completed_focus_sessions_today_since_last_long_break, #Injecting function for testing purposes
-                                _long_break_notification_function: LongBreakNotificationFn = long_break_notification  # Injecting function for testing purposes
+                                _reflection_function: ReflectionFn = prompt_reflection, #Injecting reflection function for testing purposes 
+                                _sessions_since_break_function: SessionsSinceLastLongBreakFn = get_number_completed_focus_sessions_today_since_last_long_break, #Injecting sessions since last long break function for testing purposes
+                                _long_break_notification_function: LongBreakNotificationFn = long_break_notification  # Injecting long break notification function for testing purposes
                                 ) -> str:
     '''Triggers a focus session followed by a break session. Returns the status of both sessions.'''
     if _sessions_since_break_function(cfg.data_path, cfg.long_break_minutes) >= cfg.cycles and _long_break_notification_function(console, cfg.cycles, break_duration, cfg.long_break_minutes):
@@ -147,8 +147,8 @@ def run_session_loop(
     _countdown_function: CountdownFn = run_countdown, #Injecting countdown function for testing purposes
     _reflection_function: ReflectionFn = prompt_reflection, #Injecting reflection function for testing purposes
     _continue_function: ContinueFn = continue_to_next_session, #Injecting continue function for testing purposes
-    _sessions_since_break_function: SessionsSinceLastLongBreakFn = get_number_completed_focus_sessions_today_since_last_long_break, #Injecting function for testing purposes
-    _long_break_notification_function: LongBreakNotificationFn = long_break_notification, #Injecting function for testing purposes
+    _sessions_since_break_function: SessionsSinceLastLongBreakFn = get_number_completed_focus_sessions_today_since_last_long_break, #Injecting sessions since last break function for testing purposes
+    _long_break_notification_function: LongBreakNotificationFn = long_break_notification, #Injecting long break notification function for testing purposes
 ) -> None:
     '''Helper function to run multiple focus/break cycles. Pulled out to make it easier to test.'''
     for i in range(number_of_cycles):
