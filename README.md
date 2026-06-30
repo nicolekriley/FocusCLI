@@ -83,7 +83,7 @@ focus stats
 focus stats --include-interrupted
 ```
 
-Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in the analysis of total focus time completed accross sessions. 
+Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in the analysis of total break sessions, total focus sessions, and total time focusing stats.
 
 ### View personal bests
 
@@ -93,7 +93,7 @@ focus personal-best --include-interrupted
 ```
 
 Shows longest streak, most focus sessions in a single day, and longest focus session.
-Includes a flag to also use interrupted sessions in analysis.
+Includes a flag to also use interrupted sessions in analysis for most focus minutes in a session
 
 
 

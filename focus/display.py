@@ -43,14 +43,14 @@ def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int
     console.print(Panel(title=f"{emoji} Session Interrupted {emoji}", renderable=panel_text_aligned, border_style="dim"))
 
 
-def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
-    # show stats of current streak, total sessions, sessions today, total focus time
+def show_stats(console: Console, current_streak: int, total_sessions: int, total_focus_sessions: int, total_break_sessions: int, sessions_today: int, total_focus: int) -> None:
+    # show stats of current streak, total sessions, total focus sessions, total break sessions, sessions today, total focus time
     if total_sessions == 0: 
         no_sessions_found(console)
         return
     
     emoji = Emoji("chart_with_upwards_trend")
-    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions (including breaks): [bold]{total_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold][/bold]\nTotal Focus Sessions: [bold]{total_focus_sessions}[/bold]\nTotal Break Sessions: [bold]{total_break_sessions}[/bold][/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 

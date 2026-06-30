@@ -14,16 +14,52 @@ from focus.storage import (
     get_number_completed_focus_sessions_today_since_last_long_break, 
     get_all_sessions, 
     get_most_focus_min, 
-    get_total_focus_mins
+    get_total_focus_mins, 
+    get_all_completed_focus_sessions, 
+    get_all_break_sessions, 
+    get_all_focus_sessions, 
+    get_all_completed_break_sessions
 )
 from datetime import datetime, timedelta
 from pathlib import Path
 
+## Helper functions
+
 def _today_midnight() -> datetime:
     return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+def _focus_record(id: str, status: str = "completed", minute_length: int = 25, hour_shift: int = 0) -> SessionRecord:
+    return SessionRecord(
+        id=id,
+        task=f"Task {id}",
+        planned_duration=minute_length * 60,
+        actual_duration=minute_length * 60,
+        started_at= (_today_midnight() + timedelta(hours=hour_shift)).isoformat(),
+        ended_at=(_today_midnight() + timedelta(hours=hour_shift, minutes=minute_length)).isoformat(),
+        status=status,
+        session_type="focus",
+    )
+ 
+ 
+def _break_record(id: str, status: str = "completed", minute_length: int = 5, hour_shift: int = 0) -> SessionRecord:
+    return SessionRecord(
+        id=id,
+        task=f"Task {id}",
+        planned_duration=minute_length * 60,
+        actual_duration=minute_length * 60,
+        started_at=(_today_midnight() + timedelta(hours=hour_shift)).isoformat(),
+        ended_at=(_today_midnight() + timedelta(hours=hour_shift, minutes=minute_length)).isoformat(),
+        status=status,
+        session_type="break",
+    )
+ 
+ 
+def _save_all(data_path: Path, records: list[SessionRecord]) -> None:
+    for r in records:
+        save_session(data_path, r)
+ 
 
-def test_save_and_load(tmp_path: Path) -> None:
+def test_save_session_and_load_all(tmp_path: Path) -> None:
     data_path = tmp_path / "sessions.json"
     record = SessionRecord(
         id="1", 
@@ -41,6 +77,297 @@ def test_save_and_load(tmp_path: Path) -> None:
     assert len(loaded) == 1
     assert loaded[0] == record
 
+
+def test_save_all_and_load_multiple(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1"), 
+        _break_record("2"),
+        _focus_record("3"),
+    ])
+    results = get_all_sessions(data_path)
+    assert len(results) == 3
+
+
+def test_get_all_focus_sessions_no_sessions(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    assert get_all_focus_sessions(data_path) == []
+ 
+ 
+def test_get_all_focus_sessions_only_focus(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1"),
+        _focus_record("2"),
+        _focus_record("3"),
+    ])
+    results = get_all_focus_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "focus" for r in results)
+ 
+ 
+def test_get_all_focus_sessions_only_breaks(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1"),
+        _break_record("2"),
+    ])
+    assert get_all_focus_sessions(data_path) == []
+ 
+ 
+def test_get_all_focus_sessions_mixed(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1"),
+        _break_record("2"),
+        _focus_record("3"),
+        _break_record("4"),
+    ])
+    results = get_all_focus_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "focus" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["1", "3"]
+ 
+ 
+def test_get_all_focus_sessions_with_interrupted(tmp_path: Path) -> None:
+    '''Interrupted focus sessions should still be returned — the function
+    filters by type only, not by status.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="completed"),
+        _focus_record("2", status="interrupted"),
+        _break_record("3", status="completed"),
+        _focus_record("4", status="interrupted"),
+    ])
+    results = get_all_focus_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "focus" for r in results)
+    statuses = [r["status"] for r in results]
+    assert "completed" in statuses
+    assert "interrupted" in statuses
+ 
+ 
+def test_get_all_focus_sessions_all_interrupted(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="interrupted"),
+        _focus_record("2", status="interrupted"),
+    ])
+    results = get_all_focus_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "focus" for r in results)
+ 
+ 
+# ---------------------------------------------------------------------------
+# get_all_break_sessions
+# ---------------------------------------------------------------------------
+ 
+def test_get_all_break_sessions_no_sessions(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    assert get_all_break_sessions(data_path) == []
+ 
+ 
+def test_get_all_break_sessions_only_breaks(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1"),
+        _break_record("2"),
+        _break_record("3"),
+    ])
+    results = get_all_break_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "break" for r in results)
+ 
+ 
+def test_get_all_break_sessions_only_focus(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1"),
+        _focus_record("2"),
+    ])
+    assert get_all_break_sessions(data_path) == []
+ 
+ 
+def test_get_all_break_sessions_mixed(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1"),
+        _break_record("2"),
+        _focus_record("3"),
+        _break_record("4"),
+    ])
+    results = get_all_break_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "break" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["2", "4"]
+ 
+ 
+def test_get_all_break_sessions_with_interrupted(tmp_path: Path) -> None:
+    '''Interrupted break sessions should still be returned — the function
+    filters by type only, not by status.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="completed"),
+        _break_record("2", status="interrupted"),
+        _focus_record("3", status="completed"),
+        _break_record("4", status="interrupted"),
+    ])
+    results = get_all_break_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "break" for r in results)
+    statuses = [r["status"] for r in results]
+    assert "completed" in statuses
+    assert "interrupted" in statuses
+ 
+ 
+def test_get_all_break_sessions_all_interrupted(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="interrupted"),
+        _break_record("2", status="interrupted"),
+    ])
+    results = get_all_break_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "break" for r in results)
+ 
+ 
+# ---------------------------------------------------------------------------
+# get_all_completed_focus_sessions
+# ---------------------------------------------------------------------------
+ 
+def test_get_all_completed_focus_sessions_no_sessions(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    assert get_all_completed_focus_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_focus_sessions_all_completed(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="completed"),
+        _focus_record("2", status="completed"),
+        _focus_record("3", status="completed"),
+    ])
+    results = get_all_completed_focus_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "focus" for r in results)
+    assert all(r["status"] == "completed" for r in results)
+ 
+ 
+def test_get_all_completed_focus_sessions_with_interrupted(tmp_path: Path) -> None:
+    '''Interrupted focus sessions should be excluded.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="completed"),
+        _focus_record("2", status="interrupted"),
+        _focus_record("3", status="completed"),
+    ])
+    results = get_all_completed_focus_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["status"] == "completed" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["1", "3"]
+ 
+ 
+def test_get_all_completed_focus_sessions_all_interrupted(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="interrupted"),
+        _focus_record("2", status="interrupted"),
+    ])
+    assert get_all_completed_focus_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_focus_sessions_only_breaks(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="completed"),
+        _break_record("2", status="completed"),
+    ])
+    assert get_all_completed_focus_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_focus_sessions_mixed_types_and_statuses(tmp_path: Path) -> None:
+    '''Only sessions that are both focus AND completed should be returned.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="completed"),   # included
+        _focus_record("2", status="interrupted"),  # excluded: interrupted
+        _break_record("3", status="completed"),    # excluded: break
+        _break_record("4", status="interrupted"),  # excluded: break + interrupted
+        _focus_record("5", status="completed"),   # included
+    ])
+    results = get_all_completed_focus_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "focus" for r in results)
+    assert all(r["status"] == "completed" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["1", "5"]
+
+
+def test_get_all_completed_break_sessions_no_sessions(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    assert get_all_completed_break_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_break_sessions_all_completed(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="completed"),
+        _break_record("2", status="completed"),
+        _break_record("3", status="completed"),
+    ])
+    results = get_all_completed_break_sessions(data_path)
+    assert len(results) == 3
+    assert all(r["session_type"] == "break" for r in results)
+    assert all(r["status"] == "completed" for r in results)
+ 
+ 
+def test_get_all_completed_break_sessions_with_interrupted(tmp_path: Path) -> None:
+    '''Interrupted break sessions should be excluded.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="completed"),
+        _break_record("2", status="interrupted"),
+        _break_record("3", status="completed"),
+    ])
+    results = get_all_completed_break_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["status"] == "completed" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["1", "3"]
+ 
+ 
+def test_get_all_completed_break_sessions_all_interrupted(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="interrupted"),
+        _break_record("2", status="interrupted"),
+    ])
+    assert get_all_completed_break_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_break_sessions_only_focus(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _focus_record("1", status="completed"),
+        _focus_record("2", status="completed"),
+    ])
+    assert get_all_completed_break_sessions(data_path) == []
+ 
+ 
+def test_get_all_completed_break_sessions_mixed_types_and_statuses(tmp_path: Path) -> None:
+    '''Only sessions that are both break AND completed should be returned.'''
+    data_path = tmp_path / "sessions.json"
+    _save_all(data_path, [
+        _break_record("1", status="completed"),   # included
+        _break_record("2", status="interrupted"),  # excluded: interrupted
+        _focus_record("3", status="completed"),    # excluded: focus
+        _focus_record("4", status="interrupted"),  # excluded: focus + interrupted
+        _break_record("5", status="completed"),   # included
+    ])
+    results = get_all_completed_break_sessions(data_path)
+    assert len(results) == 2
+    assert all(r["session_type"] == "break" for r in results)
+    assert all(r["status"] == "completed" for r in results)
+    assert ["id" in r and r["id"] for r in results] == ["1", "5"]
+ 
 
 def test_streak(tmp_path: Path) -> None:
     data_path = tmp_path / "sessions.json"

@@ -35,7 +35,11 @@ from focus.storage import (
     get_all_sessions,
     get_number_completed_focus_sessions_today_since_last_long_break, 
     get_total_focus_mins, 
-    get_most_focus_min
+    get_most_focus_min, 
+    get_all_break_sessions, 
+    get_all_completed_focus_sessions, 
+    get_all_focus_sessions, 
+    get_all_completed_break_sessions
 )
 from focus.config import FocusConfig
 from rich.console import Console
@@ -229,7 +233,7 @@ def history(days: int) -> None:
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
 def personal_best(include_interrupted: bool) -> None:
     '''
-    Show personal best stats like longest streak, most sessions in a day, longest focus time. Prints no sessions found if there are none.\n
+    Show personal best stats like longest streak, most sessions in a day, most focus minutes in a session. Prints no sessions found if there are none.\n
     Args: \n
         --include-interrupted: Whether to include interrupted sessions in the today's stats for most focus minutes in a session (default: False)
     '''
@@ -245,19 +249,25 @@ def personal_best(include_interrupted: bool) -> None:
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
 def stats(include_interrupted: bool) -> None:
     '''
-    Show current streak, total sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
+    Show current streak, total sessions, total focus sessions, total break sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
     Args: \n
-        --include-interrupted: Whether to include interrupted sessions in the today's total focus minutes stats (default: False)
+        --include-interrupted: Whether to include interrupted sessions in the stats for total break sessions, total focus sessions, and total focus time stats (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
     sessions = get_all_sessions(focus_session_data.data_path)
     current_streak = get_streak(focus_session_data.data_path)
     total_sessions = len(sessions)
+    total_break_sessions = len(get_all_break_sessions(focus_session_data.data_path))
+    total_focus_sessions = len(get_all_focus_sessions(focus_session_data.data_path))
+    total_complete_focus_sessions = len(get_all_completed_focus_sessions(focus_session_data.data_path))
+    total_complete_break_sessions = len(get_all_completed_break_sessions(focus_session_data.data_path))
     sessions_today = get_number_completed_focus_sessions_today(focus_session_data.data_path)
     total_focus_time = get_total_focus_mins(focus_session_data.data_path, include_interrupted=include_interrupted)
-
-    show_stats(console, current_streak, total_sessions, sessions_today, total_focus_time)
+    if include_interrupted: 
+        show_stats(console, current_streak, total_sessions,total_focus_sessions, total_break_sessions, sessions_today, total_focus_time)
+    else: 
+        show_stats(console, current_streak, total_sessions,total_complete_focus_sessions, total_complete_break_sessions, sessions_today, total_focus_time)
 
 
 @focus.command()
