@@ -13,7 +13,7 @@ from typing_extensions import Required
 
 class SessionRecord(TypedDict, total=False):
     id: str # unique identifier for the session, e.g. a UUID
-    task: str # description of the task worked on during the session
+    task: Required[str] # description of the task worked on during the session
     planned_duration: Required[int] # planned duration of the session in seconds
     actual_duration: Required[int] # actual duration of the session in seconds
     started_at: Required[str] # ISO 8601 timestamp of when the session started
