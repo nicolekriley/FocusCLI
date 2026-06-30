@@ -22,10 +22,10 @@ def cfg(tmp_path: Path) -> FocusConfig:
     )
 
 # module level helpers for simple functions 
-def always_complete(duration: float, on_tick: OnTickFn, tick_interval: float = 1.0) -> tuple[float, str]:
+def always_complete(duration: float, on_tick: OnTickFn) -> tuple[float, str]:
     return duration, "completed"
 
-def always_interrupt(duration: float, on_tick: OnTickFn, tick_interval: float = 1.0) -> tuple[float, str]:
+def always_interrupt(duration: float, on_tick: OnTickFn) -> tuple[float, str]:
     return 0, "interrupted"
 
 def fake_reflection(console: Console) -> str:
@@ -143,7 +143,7 @@ def test_trigger_session_and_break_focus_interrupted(cfg: FocusConfig) -> None:
 
 
 def test_trigger_session_and_break_break_interrupted(cfg: FocusConfig) -> None: 
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+    def fake_countdown(duration: float, on_tick: OnTickFn) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
         else:
@@ -213,7 +213,7 @@ def test_trigger_session_and_break_with_long_break_notification_accept_complete(
 
 
 def test_trigger_session_and_break_with_long_break_notification_decline_focus_complete_break_interrupted(cfg: FocusConfig) -> None:
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+    def fake_countdown(duration: float, on_tick: OnTickFn) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
         else:
@@ -279,8 +279,7 @@ def test_run_session_loop_complete(cfg: FocusConfig) -> None:
         assert break_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
         assert break_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert "reflection" in break_session
-        if "reflection" in break_session:
-            assert break_session["reflection"] == "test reflection"
+        assert break_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_completed_no_break(cfg: FocusConfig) -> None:
@@ -301,8 +300,7 @@ def test_run_session_loop_completed_no_break(cfg: FocusConfig) -> None:
         assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_interrupted_no_break(cfg: FocusConfig) -> None:
@@ -322,8 +320,7 @@ def test_run_session_loop_interrupted_no_break(cfg: FocusConfig) -> None:
     assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
     assert focus_session["actual_duration"] == 0 * 60 # Convert minutes to seconds
     assert "reflection" in focus_session
-    if "reflection" in focus_session:
-        assert focus_session["reflection"] == "test reflection"
+    assert focus_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_not_continue(cfg: FocusConfig) -> None:
@@ -344,17 +341,15 @@ def test_run_session_loop_not_continue(cfg: FocusConfig) -> None:
     assert focus_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
     assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
     assert "reflection" in focus_session
-    if "reflection" in focus_session:
-        assert focus_session["reflection"] == "test reflection"
+    assert focus_session["reflection"] == "test reflection"
 
     assert break_session["session_type"] == "break"
     assert break_session["task"] == "Test Task - Cycle 1 - Break"
     assert break_session["status"] == "completed"
     assert break_session["planned_duration"] == 1 * 60 # Convert minutes to seconds
     assert break_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
-    assert "reflection" in focus_session
-    if "reflection" in break_session:
-        assert break_session["reflection"] == "test reflection"
+    assert "reflection" in break_session
+    assert break_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_focus_interrupted(cfg: FocusConfig) -> None:
@@ -373,12 +368,11 @@ def test_run_session_loop_focus_interrupted(cfg: FocusConfig) -> None:
     assert focus_session["task"] == "Test Task - Cycle 1"
     assert focus_session["status"] == "interrupted"
     assert "reflection" in focus_session
-    if "reflection" in focus_session:
-        assert focus_session["reflection"] == "test reflection"
+    assert focus_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_break_interrupted(cfg: FocusConfig) -> None:
-    def fake_countdown(duration: float, on_tick: OnTickFn, tick_interval: float=1.0) -> tuple[float, str]:
+    def fake_countdown(duration: float, on_tick: OnTickFn) -> tuple[float, str]:
         if duration == 1.0 * 60: #Focus session duration in seconds
             return duration, "completed"  # Focus session completes
         else:
@@ -400,8 +394,7 @@ def test_run_session_loop_break_interrupted(cfg: FocusConfig) -> None:
     assert focus_session_1["actual_duration"] == 1 * 60 # Convert minutes to seconds
     assert focus_session_1["status"] == "completed"
     assert "reflection" in focus_session_1
-    if "reflection" in focus_session_1:
-        assert focus_session_1["reflection"] == "test reflection"
+    assert focus_session_1["reflection"] == "test reflection"
 
     assert break_session_1["session_type"] == "break"
     assert break_session_1["task"] == "Test Task - Cycle 1 - Break" 
@@ -409,8 +402,7 @@ def test_run_session_loop_break_interrupted(cfg: FocusConfig) -> None:
     assert break_session_1["actual_duration"] == 0 * 60 # Convert minutes to seconds
     assert break_session_1["status"] == "interrupted"
     assert "reflection" in break_session_1
-    if "reflection" in break_session_1:
-        assert break_session_1["reflection"] == "test reflection"
+    assert break_session_1["reflection"] == "test reflection"
 
 
 def test_run_session_loop_no_break(cfg: FocusConfig) -> None:
@@ -431,8 +423,7 @@ def test_run_session_loop_no_break(cfg: FocusConfig) -> None:
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["status"] == "completed"
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig) -> None:
@@ -469,8 +460,7 @@ def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig) -> None
     assert break_session_1["actual_duration"] == 2 * 60 # Convert minutes to seconds
     assert break_session_1["status"] == "completed"
     assert "reflection" in break_session_1
-    if "reflection" in break_session_1:
-        assert break_session_1["reflection"] == "test reflection"
+    assert break_session_1["reflection"] == "test reflection"
 
     assert focus_session_2["session_type"] == "focus"
     assert focus_session_2["task"] == "Test Task - Cycle 2"
@@ -478,8 +468,7 @@ def test_run_session_loop_focus_interrupt_second_focus(cfg: FocusConfig) -> None
     assert focus_session_2["actual_duration"] == 0 * 60 # Convert minutes to seconds
     assert focus_session_2["status"] == "interrupted"
     assert "reflection" in focus_session_2
-    if "reflection" in focus_session_2:
-        assert focus_session_2["reflection"] == "test reflection"
+    assert focus_session_2["reflection"] == "test reflection"
 
 
 def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig) -> None:
@@ -508,8 +497,7 @@ def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig) -> No
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["status"] == "completed"
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
@@ -520,8 +508,7 @@ def test_run_session_loop_long_break_notification_accept(cfg: FocusConfig) -> No
             assert break_session["planned_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
             assert break_session["actual_duration"] == cfg.long_break_minutes * 60 # Convert minutes to seconds (long break)
         assert "reflection" in break_session
-        if "reflection" in break_session:
-            assert break_session["reflection"] == "test reflection"
+        assert break_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig) -> None:
@@ -550,8 +537,7 @@ def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig) -> N
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["status"] == "completed"
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
@@ -559,8 +545,7 @@ def test_run_session_loop_long_break_notification_decline(cfg: FocusConfig) -> N
         assert break_session["actual_duration"] == 2 * 60 # Convert minutes to seconds
         assert break_session["status"] == "completed"
         assert "reflection" in break_session
-        if "reflection" in break_session:
-            assert break_session["reflection"] == "test reflection"
+        assert break_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: FocusConfig) -> None:
@@ -596,8 +581,7 @@ def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: 
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["status"] == "completed"
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
@@ -610,8 +594,7 @@ def test_run_session_loop_long_break_notification_accept_break_interrupted(cfg: 
             assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break)
             assert break_session["status"] == "interrupted"
         assert "reflection" in break_session
-        if "reflection" in break_session:
-            assert break_session["reflection"] == "test reflection"
+        assert break_session["reflection"] == "test reflection"
 
 
 def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg: FocusConfig) -> None:
@@ -653,8 +636,7 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
         assert focus_session["actual_duration"] == 1 * 60 # Convert minutes to seconds
         assert focus_session["status"] == "completed"
         assert "reflection" in focus_session
-        if "reflection" in focus_session:
-            assert focus_session["reflection"] == "test reflection"
+        assert focus_session["reflection"] == "test reflection"
 
         assert break_session["session_type"] == "break"
         assert break_session["task"] == f"Test Task - Cycle {i+1} - Break"
@@ -667,5 +649,4 @@ def test_run_session_loop_long_break_notification_decline_break_interrupted(cfg:
             assert break_session["actual_duration"] == 0 * 60 # Convert minutes to seconds (long break rejected)
             assert break_session["status"] == "interrupted"
         assert "reflection" in break_session
-        if "reflection" in break_session:
-            assert break_session["reflection"] == "test reflection"
+        assert break_session["reflection"] == "test reflection"

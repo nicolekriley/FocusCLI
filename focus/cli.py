@@ -44,7 +44,7 @@ from pathlib import Path
 from typing import Callable, TypeAlias
 
 OnTickFn: TypeAlias = Callable[[float, float], None]
-CountdownFn: TypeAlias = Callable[[float, OnTickFn, float], tuple[float, str]]
+CountdownFn: TypeAlias = Callable[[float, OnTickFn], tuple[float, str]]
 ReflectionFn: TypeAlias = Callable[[Console], str]
 ContinueFn: TypeAlias = Callable[[], bool]
 SessionsSinceLastLongBreakFn: TypeAlias = Callable[[Path, int], int]
@@ -121,7 +121,7 @@ def trigger_session_and_break(console: Console,
                                 duration: int,
                                 task: str,
                                 break_duration: int, 
-                                cfg: FocusConfig, #Added as a paramter for testing purposes
+                                cfg: FocusConfig, #Added as a parameter for testing purposes
                                 _countdown_function: CountdownFn = run_countdown, #Injecting countdown function for testing purposes
                                 _reflection_function: ReflectionFn = prompt_reflection, #Injecting reflection function for testing purposes 
                                 _sessions_since_break_function: SessionsSinceLastLongBreakFn = get_number_completed_focus_sessions_today_since_last_long_break, #Injecting sessions since last long break function for testing purposes
