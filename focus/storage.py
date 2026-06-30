@@ -22,24 +22,41 @@ class SessionRecord(TypedDict, total=False):
     session_type: Required[str] # "focus" or "break"
     reflection: str # optional reflection on how the session went, e.g. "Felt good", "Got distracted by phone"
 
+
 def _load_all(data_path: Path) -> list[SessionRecord]:
     if not data_path.exists():
         return []
     with open(data_path) as f:
         return cast(list[SessionRecord], json.load(f))
 
+
 def get_all_sessions(data_path: Path) -> list[SessionRecord]:
     return _load_all(data_path)
-    
+
+
+def get_all_focus_sessions(data_path: Path) -> list[SessionRecord]:
+    return [session for session in get_all_sessions(data_path) if session["session_type"] == "focus"]
+
+
+def get_all_break_sessions(data_path: Path) -> list[SessionRecord]:
+    return [session for session in get_all_sessions(data_path) if session["session_type"] == "break"]
+
+
+def get_all_completed_focus_sessions(data_path: Path) -> list[SessionRecord]:
+    return [session for session in get_all_focus_sessions(data_path) if session["status"] == "completed"]
+
+
 def _save_all(data_path: Path, records: list[SessionRecord]) -> None:
     data_path.parent.mkdir(parents=True, exist_ok=True)
     with open(data_path, "w") as f:
         json.dump(records, f, indent=2)
 
+
 def save_session(data_path: Path, record: SessionRecord) -> None:
     records = _load_all(data_path)
     records.append(record)
     _save_all(data_path, records)
+
 
 def get_sessions_last_n_days(data_path: Path, days: int = 7) -> list[SessionRecord]:
     records = _load_all(data_path)
@@ -54,6 +71,7 @@ def get_sessions_last_n_days(data_path: Path, days: int = 7) -> list[SessionReco
                 continue
     return completed_sessions
 
+
 def _get_completed_focus_dates(data_path: Path) -> set[date]:
     records = _load_all(data_path)
     completed_dates: set[date] = set()
@@ -66,6 +84,7 @@ def _get_completed_focus_dates(data_path: Path) -> set[date]:
                 continue
     return completed_dates
 
+
 def get_streak(data_path: Path) -> int:
     """Return the number of consecutive days with at least one completed focus session from current day."""
     completed_dates: set[date] = _get_completed_focus_dates(data_path) 
@@ -74,6 +93,7 @@ def get_streak(data_path: Path) -> int:
         streak += 1
     return streak
         
+
 def get_longest_streak(data_path: Path) -> int:
     """Return the longest streak of consecutive days with at least one completed focus session."""
     completed_dates: set[date] = _get_completed_focus_dates(data_path)
@@ -90,6 +110,7 @@ def get_longest_streak(data_path: Path) -> int:
             current_streak = 1
     longest_streak = max(longest_streak, current_streak)
     return longest_streak
+
 
 def get_max_sessions_per_day(data_path: Path) -> int:
     """Return the maximum number of completed focus sessions in a single day."""
