@@ -15,6 +15,7 @@ from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.align import Align
 
+
 def show_start_banner(console: Console, minutes: int, timer_type: str, task: str) -> None:
     emoji = Emoji("pushpin") if timer_type == "focus" else Emoji("coffee")
     focus_color = "bold green" if timer_type == "focus" else "bold cyan"

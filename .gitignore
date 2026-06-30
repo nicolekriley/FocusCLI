@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 .vscode/
 focus_cli.egg-info/
+demo.tape
+demo.cast

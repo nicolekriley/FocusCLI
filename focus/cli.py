@@ -54,9 +54,24 @@ ContinueFn: TypeAlias = Callable[[], bool]
 SessionsSinceLastLongBreakFn: TypeAlias = Callable[[Path, int], int]
 LongBreakNotificationFn: TypeAlias = Callable[[Console, int, int, int], bool]
 
-@click.group()
-def focus() -> None:
-    pass
+@click.group(invoke_without_command=True)
+@click.pass_context
+def focus(ctx: click.Context) -> None:
+    """
+    🎯 Focus — a Pomodoro timer built for ADHD brains.
+
+    Start a focus session, track your streaks, and reflect on
+    what you accomplished. Run a command with --help for more details.
+
+    \b
+    Examples:
+      focus start --task "Write unit tests"
+      focus start --task "Read chapter 3" --duration 45
+      focus stats
+      focus history --days 14
+    """
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 #helper function to trigger a session, used for testing and to keep start() cleaner
@@ -170,11 +185,11 @@ def run_session_loop(
 
 
 @focus.command()
-@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=click.IntRange(min=0, max=480), default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=click.IntRange(min=0, max=480), default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
-@click.option("--number-of-cycles", "-c", type=int, default=2, help="Number of focus/break cycles to run (default: 2)")
+@click.option("--number-of-cycles", "-c", type=click.IntRange(min=2, max=500), default=2, help="Number of focus/break cycles to run (default: 2)")
 def multi_start(number_of_cycles: int, duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
     Start multiple focus sessions with optional breaks. Accepts duration in minutes, task description, break duration, and number of cycles.
@@ -191,9 +206,9 @@ def multi_start(number_of_cycles: int, duration: int, task: str, break_duration:
 
 
 @focus.command()
-@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=click.IntRange(min=0, max=480), default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=click.IntRange(min=0, max=480), default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
 def start(duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
@@ -215,7 +230,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool) -> None
 
 
 @focus.command()
-@click.option("--days", "-d", default=7, help="Number of days of history to show")
+@click.option("--days", "-d", type=click.IntRange(min=1, max=1000), default=7, help="Number of days of history to show")
 def history(days: int) -> None:
     '''
     Show a table of focus sessions from the last N days. Prints no sessions found if there are none.
