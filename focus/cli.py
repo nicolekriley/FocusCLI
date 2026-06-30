@@ -231,7 +231,7 @@ def personal_best(include_interrupted: bool) -> None:
     '''
     Show personal best stats like longest streak, most sessions in a day, longest focus time. Prints no sessions found if there are none.\n
     Args: \n
-        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
+        --include-interrupted: Whether to include interrupted sessions in the today's stats for most focus minutes in a session (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
@@ -247,7 +247,7 @@ def stats(include_interrupted: bool) -> None:
     '''
     Show current streak, total sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
     Args: \n
-        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
+        --include-interrupted: Whether to include interrupted sessions in the today's total focus minutes stats (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()

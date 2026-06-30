@@ -29,7 +29,7 @@ pip install -e .
 focus start
 ```
 
-Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break.
+Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break assuming no break is not on. 
 
 **Options:**
 
@@ -83,7 +83,7 @@ focus stats
 focus stats --include-interrupted
 ```
 
-Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in analysis. 
+Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in the analysis of total focus time completed accross sessions. 
 
 ### View personal bests
 
