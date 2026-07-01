@@ -51,7 +51,7 @@ def show_stats(console: Console, current_streak: int, total_sessions: int, total
         return
     
     emoji = Emoji("chart_with_upwards_trend")
-    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold][/bold]\nTotal Focus Sessions: [bold]{total_focus_sessions}[/bold]\nTotal Break Sessions: [bold]{total_break_sessions}[/bold][/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nTotal Focus Sessions: [bold]{total_focus_sessions}[/bold]\nTotal Break Sessions: [bold]{total_break_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 

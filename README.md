@@ -2,6 +2,10 @@
 
 A Pomodoro-style focus timer for your terminal. Run timed focus sessions and breaks, track your history, and view personal bests — all from the command line.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/MP2QcmBxMPgn04bZ.svg)](https://asciinema.org/a/MP2QcmBxMPgn04bZ)
+
 ## Features
 
 - Timed focus and break sessions with a live progress bar
