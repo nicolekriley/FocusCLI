@@ -58,7 +58,7 @@ LongBreakNotificationFn: TypeAlias = Callable[[Console, int, int, int], bool]
 @click.pass_context
 def focus(ctx: click.Context) -> None:
     """
-    🎯 Focus — a Pomodoro timer built for ADHD brains.
+    🎯 Focus — a Pomodoro timer built for neurodivergent brains in your terminal.
 
     Start a focus session, track your streaks, and reflect on
     what you accomplished. Run a command with --help for more details.
