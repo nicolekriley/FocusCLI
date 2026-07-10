@@ -36,7 +36,7 @@ Tests that exercise `countdown` would be unacceptably slow if they waited on rea
 - Mock `time.sleep` in tests to eliminate the wait
 
 **What I Chose and Why:**
-I added `tick_interval` as a parameter to `countdown` and default it to `0` in tests. This required no mocking infrastructure and has the bonus of being usable during manual command-line testing as you can pass `--tick-interval 0` to run through sessions instantly. Mocking `time.sleep` would speed up automated tests but wouldn't help during manual testing and would couple the tests more tightly to the implementation detail of which sleep function is called.
+I added `tick_interval` as a parameter to `run_countdown` (defaulting to `1.0` in production and passed as `0` from tests). This required no mocking infrastructure and keeps the timing knob explicit at the function boundary. Mocking `time.sleep` would speed up automated tests but would couple the tests more tightly to the implementation detail of which sleep function is called.
 
 **What I'd Do Differently:**
 In hindsight, both approaches are reasonable. If `countdown` grew more complex and `tick_interval` started feeling like test-only contamination of the production API, I'd switch to mocking. For now, the parameter approach keeps things simple and flexible.

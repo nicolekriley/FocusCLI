@@ -55,6 +55,7 @@ SessionsSinceLastLongBreakFn: TypeAlias = Callable[[Path, int], int]
 LongBreakNotificationFn: TypeAlias = Callable[[Console, int, int, int], bool]
 
 @click.group(invoke_without_command=True)
+@click.version_option(package_name="focus-cli", prog_name="focus")
 @click.pass_context
 def focus(ctx: click.Context) -> None:
     """
@@ -315,4 +316,3 @@ def reset() -> None:
 
 if __name__ == "__main__":
     focus()
-

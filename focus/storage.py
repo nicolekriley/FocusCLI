@@ -26,8 +26,15 @@ class SessionRecord(TypedDict, total=False):
 def _load_all(data_path: Path) -> list[SessionRecord]:
     if not data_path.exists():
         return []
-    with open(data_path) as f:
-        return cast(list[SessionRecord], json.load(f))
+    try:
+        with open(data_path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        # Corrupt or unreadable data file: treat as empty rather than crashing.
+        return []
+    if not isinstance(data, list):
+        return []
+    return cast(list[SessionRecord], data)
 
 
 def get_all_sessions(data_path: Path) -> list[SessionRecord]:
@@ -184,6 +191,5 @@ def get_most_focus_min(data_path: Path, include_interrupted: bool = False) -> in
     records = _load_all(data_path)
     if include_interrupted:
         return round(max((r.get("actual_duration", 0) for r in records if r.get("session_type") == "focus"), default=0)/60)
-    else: 
+    else:
         return round(max((r.get("actual_duration", 0) for r in records if r.get("status") == "completed" and r.get("session_type") == "focus"), default=0)/60)
-    

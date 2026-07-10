@@ -33,7 +33,7 @@ pip install -e .
 focus start
 ```
 
-Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break assuming no break is not on. 
+Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break (unless `--no-break` is set).
 
 **Options:**
 
@@ -87,7 +87,7 @@ focus stats
 focus stats --include-interrupted
 ```
 
-Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in the analysis of total break sessions, total focus sessions, and total time focusing stats.
+Shows current streak, total sessions, total focus sessions, total break sessions, sessions completed today, and total focus time. Pass `--include-interrupted` to count interrupted sessions in the focus-session, break-session, and total-focus-time figures.
 
 ### View personal bests
 
@@ -96,8 +96,7 @@ focus personal-best
 focus personal-best --include-interrupted
 ```
 
-Shows longest streak, most focus sessions in a single day, and longest focus session.
-Includes a flag to also use interrupted sessions in analysis for most focus minutes in a session
+Shows longest streak, most focus sessions in a single day, and longest focus session. Pass `--include-interrupted` to count interrupted sessions when computing the longest focus session.
 
 
 
@@ -133,8 +132,9 @@ long_break_minutes = 15
 | `break_minutes` | 5 | Default break length |
 | `cycles` | 4 | Focus sessions before a long break is suggested |
 | `long_break_minutes` | 15 | Length of the suggested long break |
+| `data_path` | `~/.focus_data.json` | Where session data is stored |
 
-Session data is saved to `~/.focus_data.json`.
+Session data is saved to `~/.focus_data.json` by default.
 
 ## Development
 
