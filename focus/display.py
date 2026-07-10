@@ -15,6 +15,7 @@ from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.align import Align
 
+
 def show_start_banner(console: Console, minutes: int, timer_type: str, task: str) -> None:
     emoji = Emoji("pushpin") if timer_type == "focus" else Emoji("coffee")
     focus_color = "bold green" if timer_type == "focus" else "bold cyan"
@@ -43,14 +44,14 @@ def show_interrupt_banner(console: Console, timer_type: str, actual_minutes: int
     console.print(Panel(title=f"{emoji} Session Interrupted {emoji}", renderable=panel_text_aligned, border_style="dim"))
 
 
-def show_stats(console: Console, current_streak: int, total_sessions: int, sessions_today: int, total_focus: int) -> None:
-    # show stats of current streak, total sessions, sessions today, total focus time
+def show_stats(console: Console, current_streak: int, total_sessions: int, total_focus_sessions: int, total_break_sessions: int, sessions_today: int, total_focus: int) -> None:
+    # show stats of current streak, total sessions, total focus sessions, total break sessions, sessions today, total focus time
     if total_sessions == 0: 
         no_sessions_found(console)
         return
     
     emoji = Emoji("chart_with_upwards_trend")
-    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
+    panel_text = f"Current Streak: [bold]{current_streak}[/bold]\nTotal Sessions: [bold]{total_sessions}[/bold]\nTotal Focus Sessions: [bold]{total_focus_sessions}[/bold]\nTotal Break Sessions: [bold]{total_break_sessions}[/bold]\nCompleted Sessions Today: [bold]{sessions_today}[/bold]\nTotal Focus Time: [bold]{total_focus} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Session Stats {emoji}", border_style="blue"))
 
@@ -61,7 +62,7 @@ def show_best_stats(console: Console, best_streak: int, best_focus_count: int, m
         return
     
     emoji = Emoji("trophy")
-    panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Time: [bold]{most_focus_min} minutes[/bold]"
+    panel_text = f"Best Streak: [bold]{best_streak}[/bold]\nMost Focus Sessions in a Day: [bold]{best_focus_count}[/bold]\nLongest Focus Session: [bold]{most_focus_min} minutes[/bold]"
     aligned_text = Align.center(panel_text)
     console.print(Panel(renderable=aligned_text, title=f"{emoji} Personal Bests {emoji}", border_style="magenta"))
 
@@ -73,7 +74,6 @@ def show_history_table(console: Console, length: int, sessions: list[SessionReco
     
     table = Table(title=f"Focus Session History (Last {length} Days)")
     table.add_column("Task", style="cyan")
-    table.add_column("Session Type", style="yellow")
     table.add_column("Planned (min)", justify="right", style="magenta")
     table.add_column("Actual (min)", justify="right", style="green")
     table.add_column("Status", style="bold")
@@ -84,14 +84,12 @@ def show_history_table(console: Console, length: int, sessions: list[SessionReco
         status_color = "green" if s["status"] == "completed" else "red"
         emoji = Emoji("heavy_check_mark") if s["status"] == "completed" else Emoji("zap")
         status_fmt = f"[{status_color}]{emoji}  completed[/{status_color}]" if s["status"] == "completed" else f"[{status_color}]{emoji} interrupted[/{status_color}]"
-        type_color = "blue" if s["session_type"] == "focus" else "yellow"
         start_date_time = datetime.fromisoformat(s["started_at"]).strftime("%Y-%m-%d %H:%M:%S")
         end_date_time = datetime.fromisoformat(s["ended_at"]).strftime("%Y-%m-%d %H:%M:%S")
         table.add_row(
             s.get("task", ""),
-            f"[{type_color}]{s['session_type']}[/{type_color}]",
-            f"{s['planned_duration'] // 60:.1f}",
-            f"{s['actual_duration'] // 60:.1f}",
+            f"{s['planned_duration'] // 60}",
+            f"{s['actual_duration'] // 60}",
             status_fmt,
             start_date_time,
             end_date_time,

@@ -2,6 +2,10 @@
 
 A Pomodoro-style focus timer for your terminal. Run timed focus sessions and breaks, track your history, and view personal bests — all from the command line.
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/MP2QcmBxMPgn04bZ.svg)](https://asciinema.org/a/MP2QcmBxMPgn04bZ)
+
 ## Features
 
 - Timed focus and break sessions with a live progress bar
@@ -29,7 +33,7 @@ pip install -e .
 focus start
 ```
 
-Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break.
+Runs a focus session followed by a break. After enough focus sessions in a day, you'll be prompted to take a longer break (unless `--no-break` is set).
 
 **Options:**
 
@@ -83,7 +87,7 @@ focus stats
 focus stats --include-interrupted
 ```
 
-Shows current streak, total sessions, sessions completed today, and total focus time. Includes a flag to also use interrupted sessions in analysis. 
+Shows current streak, total sessions, total focus sessions, total break sessions, sessions completed today, and total focus time. Pass `--include-interrupted` to count interrupted sessions in the focus-session, break-session, and total-focus-time figures.
 
 ### View personal bests
 
@@ -92,8 +96,7 @@ focus personal-best
 focus personal-best --include-interrupted
 ```
 
-Shows longest streak, most focus sessions in a single day, and longest focus session.
-Includes a flag to also use interrupted sessions in analysis.
+Shows longest streak, most focus sessions in a single day, and longest focus session. Pass `--include-interrupted` to count interrupted sessions when computing the longest focus session.
 
 
 
@@ -130,7 +133,7 @@ long_break_minutes = 15
 | `cycles` | 4 | Focus sessions before a long break is suggested |
 | `long_break_minutes` | 15 | Length of the suggested long break |
 
-Session data is saved to `~/.focus_data.json`.
+Session data is saved to `~/.focus_data.json` by default.
 
 ## Development
 

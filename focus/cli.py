@@ -35,7 +35,11 @@ from focus.storage import (
     get_all_sessions,
     get_number_completed_focus_sessions_today_since_last_long_break, 
     get_total_focus_mins, 
-    get_most_focus_min
+    get_most_focus_min, 
+    get_all_break_sessions, 
+    get_all_completed_focus_sessions, 
+    get_all_focus_sessions, 
+    get_all_completed_break_sessions
 )
 from focus.config import FocusConfig
 from rich.console import Console
@@ -50,9 +54,25 @@ ContinueFn: TypeAlias = Callable[[], bool]
 SessionsSinceLastLongBreakFn: TypeAlias = Callable[[Path, int], int]
 LongBreakNotificationFn: TypeAlias = Callable[[Console, int, int, int], bool]
 
-@click.group()
-def focus() -> None:
-    pass
+@click.group(invoke_without_command=True)
+@click.version_option(package_name="focus-cli", prog_name="focus")
+@click.pass_context
+def focus(ctx: click.Context) -> None:
+    """
+    🎯 Focus — a Pomodoro timer built for neurodivergent brains in your terminal.
+
+    Start a focus session, track your streaks, and reflect on
+    what you accomplished. Run a command with --help for more details.
+
+    \b
+    Examples:
+      focus start --task "Write unit tests"
+      focus start --task "Read chapter 3" --duration 45
+      focus stats
+      focus history --days 14
+    """
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 #helper function to trigger a session, used for testing and to keep start() cleaner
@@ -166,11 +186,11 @@ def run_session_loop(
 
 
 @focus.command()
-@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=click.IntRange(min=0, max=480), default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=click.IntRange(min=0, max=480), default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
-@click.option("--number-of-cycles", "-c", type=int, default=2, help="Number of focus/break cycles to run (default: 2)")
+@click.option("--number-of-cycles", "-c", type=click.IntRange(min=2, max=500), default=2, help="Number of focus/break cycles to run (default: 2)")
 def multi_start(number_of_cycles: int, duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
     Start multiple focus sessions with optional breaks. Accepts duration in minutes, task description, break duration, and number of cycles.
@@ -187,9 +207,9 @@ def multi_start(number_of_cycles: int, duration: int, task: str, break_duration:
 
 
 @focus.command()
-@click.option("--duration", "-d", type=int, default=None, help="Duration of focus session in minutes(overrides config)")
+@click.option("--duration", "-d", type=click.IntRange(min=0, max=480), default=None, help="Duration of focus session in minutes(overrides config)")
 @click.option("--task", "-t", default="General Focus", help="Description of the task you're working on")
-@click.option("--break-duration", "-b", type=int, default=None, help="Duration of break session in minutes (overrides config)")
+@click.option("--break-duration", "-b", type=click.IntRange(min=0, max=480), default=None, help="Duration of break session in minutes (overrides config)")
 @click.option("--no-break", is_flag=True, default=False, help="Skip the break after this session")
 def start(duration: int, task: str, break_duration: int, no_break: bool) -> None:
     '''
@@ -211,11 +231,11 @@ def start(duration: int, task: str, break_duration: int, no_break: bool) -> None
 
 
 @focus.command()
-@click.option("--days", "-d", default=7, help="Number of days of history to show")
+@click.option("--days", "-d", type=click.IntRange(min=1, max=1000), default=7, help="Number of days of history to show")
 def history(days: int) -> None:
     '''
     Show a table of focus sessions from the last N days. Prints no sessions found if there are none.
-    Table contains task, session type, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
+    Table contains task, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
     Args: \n
         --days: Number of days of history to show (default: 7)
     '''
@@ -229,9 +249,9 @@ def history(days: int) -> None:
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
 def personal_best(include_interrupted: bool) -> None:
     '''
-    Show personal best stats like longest streak, most sessions in a day, longest focus time. Prints no sessions found if there are none.\n
+    Show personal best stats like longest streak, most sessions in a day, most focus minutes in a session. Prints no sessions found if there are none.\n
     Args: \n
-        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
+        --include-interrupted: Whether to include interrupted sessions in the today's stats for most focus minutes in a session (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
@@ -245,19 +265,25 @@ def personal_best(include_interrupted: bool) -> None:
 @click.option("--include-interrupted", is_flag=True, help="Whether to include interrupted sessions in the today's stats")
 def stats(include_interrupted: bool) -> None:
     '''
-    Show current streak, total sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
+    Show current streak, total sessions, total focus sessions, total break sessions, sessions today, and total focus time. Prints no sessions found if there are none.\n
     Args: \n
-        --include-interrupted: Whether to include interrupted sessions in the today's stats (default: False)
+        --include-interrupted: Whether to include interrupted sessions in the stats for total break sessions, total focus sessions, and total focus time stats (default: False)
     '''
     console = Console()
     focus_session_data = FocusConfig.load()
     sessions = get_all_sessions(focus_session_data.data_path)
     current_streak = get_streak(focus_session_data.data_path)
     total_sessions = len(sessions)
+    total_break_sessions = len(get_all_break_sessions(focus_session_data.data_path))
+    total_focus_sessions = len(get_all_focus_sessions(focus_session_data.data_path))
+    total_complete_focus_sessions = len(get_all_completed_focus_sessions(focus_session_data.data_path))
+    total_complete_break_sessions = len(get_all_completed_break_sessions(focus_session_data.data_path))
     sessions_today = get_number_completed_focus_sessions_today(focus_session_data.data_path)
     total_focus_time = get_total_focus_mins(focus_session_data.data_path, include_interrupted=include_interrupted)
-
-    show_stats(console, current_streak, total_sessions, sessions_today, total_focus_time)
+    if include_interrupted: 
+        show_stats(console, current_streak, total_sessions,total_focus_sessions, total_break_sessions, sessions_today, total_focus_time)
+    else: 
+        show_stats(console, current_streak, total_sessions,total_complete_focus_sessions, total_complete_break_sessions, sessions_today, total_focus_time)
 
 
 @focus.command()
@@ -290,4 +316,3 @@ def reset() -> None:
 
 if __name__ == "__main__":
     focus()
-

@@ -16,7 +16,6 @@ def cfg(tmp_path: Path) -> FocusConfig:
         focus_minutes=1,
         break_minutes=2,
         long_break_minutes=5,
-        long_focus_minutes=3,
         cycles=2,
         data_path= tmp_path / "test_data.json",
     )

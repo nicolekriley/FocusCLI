@@ -2,5 +2,11 @@ __pycache__/
 *.py[cod]
 *.pyc
 .pytest_cache/
+.coverage
+.coverage.*
+.mypy_cache/
+.ruff_cache/
 .vscode/
 focus_cli.egg-info/
+demo.tape
+demo.cast
