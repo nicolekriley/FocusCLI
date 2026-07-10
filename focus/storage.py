@@ -42,18 +42,18 @@ def get_all_sessions(data_path: Path) -> list[SessionRecord]:
 
 
 def get_all_focus_sessions(data_path: Path) -> list[SessionRecord]:
-    return [session for session in get_all_sessions(data_path) if session["session_type"] == "focus"]
+    return [session for session in get_all_sessions(data_path) if session.get("session_type") == "focus"]
 
 
 def get_all_break_sessions(data_path: Path) -> list[SessionRecord]:
-    return [session for session in get_all_sessions(data_path) if session["session_type"] == "break"]
+    return [session for session in get_all_sessions(data_path) if session.get("session_type") == "break"]
 
 def get_all_completed_break_sessions(data_path: Path) -> list[SessionRecord]:
-    return [session for session in get_all_break_sessions(data_path) if session["status"] == "completed"]
+    return [session for session in get_all_break_sessions(data_path) if session.get("status") == "completed"]
 
 
 def get_all_completed_focus_sessions(data_path: Path) -> list[SessionRecord]:
-    return [session for session in get_all_focus_sessions(data_path) if session["status"] == "completed"]
+    return [session for session in get_all_focus_sessions(data_path) if session.get("status") == "completed"]
 
 
 def _save_all(data_path: Path, records: list[SessionRecord]) -> None:

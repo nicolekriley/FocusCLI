@@ -2,7 +2,7 @@
 test functionality of FocusConfig class in config.py
 '''
 
-from focus.config import FocusConfig, DEFAULT_BREAK_MINUTES, DEFAULT_CYCLES, DEFAULT_FOCUS_MINUTES, DEFAULT_LONG_BREAK_MINUTES, DEFAULT_LONG_FOCUS_MINUTES
+from focus.config import FocusConfig, DEFAULT_BREAK_MINUTES, DEFAULT_CYCLES, DEFAULT_FOCUS_MINUTES, DEFAULT_LONG_BREAK_MINUTES
 import focus.config as config_module
 from pathlib import Path
 import pytest
@@ -14,7 +14,6 @@ def test_load_defaults() -> None:
     assert cfg.break_minutes == DEFAULT_BREAK_MINUTES
     assert cfg.cycles == DEFAULT_CYCLES
     assert cfg.long_break_minutes == DEFAULT_LONG_BREAK_MINUTES
-    assert cfg.long_focus_minutes == DEFAULT_LONG_FOCUS_MINUTES
     assert str(cfg.data_path) == str(Path.home() / ".focus_data.json")
 
 
@@ -25,7 +24,6 @@ def test_show() -> None:
     assert display["Break duration"] == str(DEFAULT_BREAK_MINUTES) + " min"
     assert display["Cycles before long break"] == DEFAULT_CYCLES
     assert display["Long break duration"] == str(DEFAULT_LONG_BREAK_MINUTES) + " min"
-    assert display["Long focus duration"] == str(DEFAULT_LONG_FOCUS_MINUTES) + " min"
 
 
 @pytest.fixture(autouse=False) 

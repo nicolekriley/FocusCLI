@@ -89,6 +89,13 @@ def test_save_all_and_load_multiple(tmp_path: Path) -> None:
     assert len(results) == 3
 
 
+def test_load_all_with_corrupt_file(tmp_path: Path) -> None:
+    data_path = tmp_path / "sessions.json"
+    data_path.write_text("not a valid json")
+    results = get_all_sessions(data_path)
+    assert results == []  # Should return empty list, not raise an exception
+
+
 def test_get_all_focus_sessions_no_sessions(tmp_path: Path) -> None:
     data_path = tmp_path / "sessions.json"
     assert get_all_focus_sessions(data_path) == []

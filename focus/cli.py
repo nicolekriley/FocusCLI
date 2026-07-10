@@ -235,7 +235,7 @@ def start(duration: int, task: str, break_duration: int, no_break: bool) -> None
 def history(days: int) -> None:
     '''
     Show a table of focus sessions from the last N days. Prints no sessions found if there are none.
-    Table contains task, session type, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
+    Table contains task, planned vs actual duration, status (completed vs interrupted), and start/end timestamps.\n
     Args: \n
         --days: Number of days of history to show (default: 7)
     '''
