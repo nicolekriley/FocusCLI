@@ -74,7 +74,6 @@ def show_history_table(console: Console, length: int, sessions: list[SessionReco
     
     table = Table(title=f"Focus Session History (Last {length} Days)")
     table.add_column("Task", style="cyan")
-    table.add_column("Session Type", style="yellow")
     table.add_column("Planned (min)", justify="right", style="magenta")
     table.add_column("Actual (min)", justify="right", style="green")
     table.add_column("Status", style="bold")
@@ -85,14 +84,12 @@ def show_history_table(console: Console, length: int, sessions: list[SessionReco
         status_color = "green" if s["status"] == "completed" else "red"
         emoji = Emoji("heavy_check_mark") if s["status"] == "completed" else Emoji("zap")
         status_fmt = f"[{status_color}]{emoji}  completed[/{status_color}]" if s["status"] == "completed" else f"[{status_color}]{emoji} interrupted[/{status_color}]"
-        type_color = "blue" if s["session_type"] == "focus" else "yellow"
         start_date_time = datetime.fromisoformat(s["started_at"]).strftime("%Y-%m-%d %H:%M:%S")
         end_date_time = datetime.fromisoformat(s["ended_at"]).strftime("%Y-%m-%d %H:%M:%S")
         table.add_row(
             s.get("task", ""),
-            f"[{type_color}]{s['session_type']}[/{type_color}]",
-            f"{s['planned_duration'] // 60:.1f}",
-            f"{s['actual_duration'] // 60:.1f}",
+            f"{s['planned_duration'] // 60}",
+            f"{s['actual_duration'] // 60}",
             status_fmt,
             start_date_time,
             end_date_time,

@@ -47,7 +47,6 @@ def test_load_from_file(override_config_path: Path) -> None:
     break_minutes = 10
     cycles = 3
     long_break_minutes = 20
-    long_focus_minutes = 60
     data_path = "/tmp/focus_data.json"
     """
     override_config_path.write_text(config_content)
@@ -57,5 +56,4 @@ def test_load_from_file(override_config_path: Path) -> None:
     assert cfg.break_minutes == 10
     assert cfg.cycles == 3
     assert cfg.long_break_minutes == 20
-    assert cfg.long_focus_minutes == 60
     assert str(cfg.data_path) == "/tmp/focus_data.json"
