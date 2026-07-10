@@ -132,7 +132,6 @@ long_break_minutes = 15
 | `break_minutes` | 5 | Default break length |
 | `cycles` | 4 | Focus sessions before a long break is suggested |
 | `long_break_minutes` | 15 | Length of the suggested long break |
-| `data_path` | `~/.focus_data.json` | Where session data is stored |
 
 Session data is saved to `~/.focus_data.json` by default.
 
